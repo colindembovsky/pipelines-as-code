@@ -1,0 +1,17 @@
+name: 1.0$(Rev:.r)
+
+trigger:
+  branch:
+    include:
+    - master
+  
+variables:
+  name: colin
+  
+pool:
+  vmImage: ubuntu-latest
+  
+jobs:
+- job:
+  steps:
+    - script: echo "Hello, $(name)"
