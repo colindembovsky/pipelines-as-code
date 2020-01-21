@@ -1,9 +1,14 @@
 name: 1.0$(Rev:.r)
 
+# simplified trigger (implied branch)
 trigger:
-  branch:
-    include:
-    - master
+- master
+
+# equivalent trigger
+# trigger:
+#   branches:
+#     include:
+#     - master
   
 variables:
   name: colin
@@ -12,6 +17,6 @@ pool:
   vmImage: ubuntu-latest
   
 jobs:
-- job:
+- job: helloworld
   steps:
-    - script: echo "Hello, $(name)"
+  - script: echo "Hello, $(name)"
