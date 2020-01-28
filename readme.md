@@ -3,15 +3,15 @@
 I remember my first job after graduating from college – I worked for a small Internet Service Provider (ISP) that provided services such as email and anti-virus to its customers. We were using C++ and CORBA – this was before web services and REST. 
 I remember Friday afternoons spent watching the build scripts slowly build our large code base. Woe to the developer that broke the build! When the build succeeded, we would all cheer, and then we’d step outside into the African sun and we would all braai (barbeque) and celebrate another successful build.
 
-I remember how long it took me to wrap my hear around the build process. The scripts were complex, our source control was basic and though most of the process was automated, you still had to have a lot of “tribal knowledge” to get the build to work. However primitive the process was, it was my first taste of automated builds.
+I remember how long it took me to wrap my hear around the build process. The scripts were complex, our source control was basic and though most of the process was automated, you still had to have a lot of "tribal knowledge" to get the build to work. However primitive the process was, it was my first taste of automated builds.
 
 My second job was for a financial services company with about 20 developers. There was no such thing as automated build and deploy – we just right-click Published from Visual Studio. As you can imagine, deployment errors and failures were very common: I remember how many times someone overwrote the production web.config with the web.config from their local machine!
-I knew there was a better way – and looking around I found a beta product that looked promising. It was called “Team Foundation Server (TFS) 2005”. It took about a week to install in those days, but it came with source control, a build engine, work and test management.
+I knew there was a better way – and looking around I found a beta product that looked promising. It was called "Team Foundation Server (TFS) 2005". It took about a week to install in those days, but it came with source control, a build engine, work and test management.
 
 ## A Trip Down Memory Lane
 The build system was a runner that executed MSBuild files – in those days it was a standard way to build .NET applications. But customizing the build process (in XML) was not particularly elegant.
 
-When TFS 2010 shipped, it came with a Windows Workflow Foundation-based build engine. There was a User Interface (UI) editor in Visual Studio for editing the XAML definitions, and I learned how to customize the builds: it was a laborious process, requiring .NET code and uploading binaries to a shared folder under source control, adding that folder to the agent and referencing the assemblies within the custom templates – not many teams bothered to customize because of the difficulty, and those that did ended up spending too much time on “plumbing” to make customization worthwhile.
+When TFS 2010 shipped, it came with a Windows Workflow Foundation-based build engine. There was a User Interface (UI) editor in Visual Studio for editing the XAML definitions, and I learned how to customize the builds: it was a laborious process, requiring .NET code and uploading binaries to a shared folder under source control, adding that folder to the agent and referencing the assemblies within the custom templates – not many teams bothered to customize because of the difficulty, and those that did ended up spending too much time on "plumbing" to make customization worthwhile.
 
 It’s also worth noting that while my team was (slowly) getting better at automated builds, there wasn’t a good way to deploy automatically. You could add a script in to push compiled code somewhere, but approvals were handled manually or through an external ticketing system. We ended up building our own release management tool.
 
@@ -21,7 +21,7 @@ In 2013, Microsoft acquired a tool called InRelease from InCycle. It was rebrand
 These releases could be configured to trigger off build completion events, and for the first time teams had a fairly sophisticated toolchain that allowed building, testing and deploying applications. At around the same time, Microsoft release Visual Studio Online, a cloud-hosted version of Team Foundation Server. In 2015, the desktop Release Management product was superseded by an integrated web-based UI. Visual Studio Online was then rebranded to Visual Studio Team Services and later to Azure DevOps Services. Team Foundation Server was rebranded to Azure DevOps Server in late 2018.
 
 For the remainder of this chapter, I’ll refer to Azure DevOps, but this includes Azure DevOps Server too, so whether you’re on the cloud service or hosting your own Azure DevOps Server, there’s no difference as far as pipelines as code is concerned.
-While you could export the build and release definitions as JSON files, these artifacts were stored “somewhere” in the backend database of Azure DevOps and not in source control. You could see the history of changes to the definitions – but only if you looked at them in the web designer, and it was difficult to trace changes or even create any sort of approval process for changes to definitions.
+While you could export the build and release definitions as JSON files, these artifacts were stored "somewhere" in the backend database of Azure DevOps and not in source control. You could see the history of changes to the definitions – but only if you looked at them in the web designer, and it was difficult to trace changes or even create any sort of approval process for changes to definitions.
 
 Other competing build systems, like CircleCI, allowed teams to create build processes using files stored in source control. Finally, late in 2017 Microsoft released YAML builds. These builds are YAML files stored in source control alongside your application code – which means they benefit from all the source control processes that application code benefit from, such as Pull Requests.
 In May 2019, Microsoft added stages to YAML files allow teams to codify the entire end-to-end build, test and deploy workflow in a YAML file. At last, teams using Azure DevOps were able to codify their entire pipeline.
@@ -38,11 +38,11 @@ While pipelines as code – in our case, YAML builds – are powerful, they also
 
 ## Basics of Pipelines
 ### Agents and Queues
-Before we jump into pipelines themselves, we must consider where these pipelines execute. The Azure DevOps build system is still really an orchestration engine: when a build is triggered, it finds an “agent” and tells the agent to execute the jobs (we’ll cover jobs later) defined in the pipeline file.
+Before we jump into pipelines themselves, we must consider where these pipelines execute. The Azure DevOps build system is still really an orchestration engine: when a build is triggered, it finds an "agent" and tells the agent to execute the jobs (we’ll cover jobs later) defined in the pipeline file.
 
 The agent is written in .NET Core, so it runs happily wherever .NET Core runs – Windows, Mac and Linux. Agents are registered with a queue in Azure DevOps: there are two types of queue in Azure DevOps: hosted and private.
 
-Every Azure DevOps account has a Hosted queue with a single agent that can run one job at a time and an amount of free build minutes. Pricing is beyond the scope of this chapter, but you can purchase additional “hosted pipelines” in Azure DevOps. When you purchase an additional hosted pipeline, you’re really removing the build minutes limit and adding concurrency: one pipeline can run one job at a time, two pipelines can run two jobs simultaneously. When a pipeline is triggered or manually queued, Azure DevOps spins up an agent in Azure (either Windows, Linux or Mac, depending on which image you’ve configured to handle the pipeline) and runs the steps in the pipeline. The image is predefined by Microsoft and comes with a set of tools and SDKs preinstalled. Once the build completes, the instance is deleted.
+Every Azure DevOps account has a Hosted queue with a single agent that can run one job at a time and an amount of free build minutes. Pricing is beyond the scope of this chapter, but you can purchase additional "hosted pipelines" in Azure DevOps. When you purchase an additional hosted pipeline, you’re really removing the build minutes limit and adding concurrency: one pipeline can run one job at a time, two pipelines can run two jobs simultaneously. When a pipeline is triggered or manually queued, Azure DevOps spins up an agent in Azure (either Windows, Linux or Mac, depending on which image you’ve configured to handle the pipeline) and runs the steps in the pipeline. The image is predefined by Microsoft and comes with a set of tools and SDKs preinstalled. Once the build completes, the instance is deleted.
 
 > **TIP**: To see the list of installed software on the images, navigate to [https://github.com/actions/virtual-environments/tree/master/images](https://github.com/actions/virtual-environments/tree/master/images). Click into the platform folder and examine the README.md files.
 
@@ -57,7 +57,7 @@ When you install an agent, you register the agent with a private queue. You can 
 ## Anatomy of a Pipeline
 
 ### Hello World
-Let’s start off slowly and create a simple pipeline that echos “Hello World!” to the console. This wouldn’t be a proper technical chapter if it didn’t include a Hello World example. Don’t worry – we’ll get more sophisticated quickly!
+Let’s start off slowly and create a simple pipeline that echos "Hello World!" to the console. This wouldn’t be a proper technical chapter if it didn’t include a Hello World example. Don’t worry – we’ll get more sophisticated quickly!
 
 ```yml
 name: 1.0$(Rev:.r)
@@ -92,16 +92,16 @@ If you run this, you'll see output similar to this:
 While this first example is fairly simple, it shows the anatomy of a basic pipeline. Most pipelines will have these components:
 
 1. Name – though often this is skipped (if it is skipped, a date-based name is generated automatically)
-1. Trigger – more on triggers later, but without an explicity trigger, there’s an implicit “trigger on every commit to any path from any branch in this repo”
-1. Variables – these are “inline” variables (more on other types of variables later)
+1. Trigger – more on triggers later, but without an explicity trigger, there’s an implicit "trigger on every commit to any path from any branch in this repo"
+1. Variables – these are "inline" variables (more on other types of variables later)
 1. Job – every pipeline must have at least one job
 1. Pool – you configure which pool (queue) the job must run on
-1. Checkout – the “checkout: self” tells the job which repository (or repositories if there are multiple checkouts) to checkout for this job
-1. Steps – the actual tasks that need to be executed: in this case a “script” task (script is an alias) that can run inline scripts
+1. Checkout – the "checkout: self" tells the job which repository (or repositories if there are multiple checkouts) to checkout for this job
+1. Steps – the actual tasks that need to be executed: in this case a "script" task (script is an alias) that can run inline scripts
 
 We’ll cover some other components later, such as:
 1. Resources – references to other repos, either for code or for templates
-1. Stages – jobs can be grouped together into logical “stages”
+1. Stages – jobs can be grouped together into logical "stages"
 1. Templates – reusable jobs or sets of steps
 1. Deployments – special jobs that execute against an environment
 1. Download – for downloading pipeline artifacts
@@ -214,7 +214,7 @@ steps:
 ```
 
 ### Steps are Tasks
-Steps are the actual “things” that execute, in the order that they are specified in the job. Each step is a task: there are out of the box (OOB) tasks that come with Azure DevOps, many of which have aliases, and there are tasks that get installed to your Azure DevOps account via the marketplace.
+Steps are the actual "things" that execute, in the order that they are specified in the job. Each step is a task: there are out of the box (OOB) tasks that come with Azure DevOps, many of which have aliases, and there are tasks that get installed to your Azure DevOps account via the marketplace.
 
 Creating custom tasks is beyond the scope of this chapter, but you can see how to create your own custom tasks here [https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops).
 
@@ -229,7 +229,7 @@ To dereference a variable, simply wrap the key in `$()`. Let’s consider this s
 variables:
   name: colin
 steps:
--	script: echo “Hello, $(name)!”
+-	script: echo "Hello, $(name)!"
 ```
 
 This will write `Hello, colin!` to the log.
@@ -239,7 +239,7 @@ These are variables that are hard coded into the pipeline YML file itself. Use t
 
 TODO: var, image tag, image push
 
-> **Note**: obviously you cannot create “secret” inline variables. If you need a variable to be secret, you’ll have to use pipeline variables, variable groups or dynamic variables.
+> **Note**: obviously you cannot create "secret" inline variables. If you need a variable to be secret, you’ll have to use pipeline variables, variable groups or dynamic variables.
 
 ### Predefined Variables
 There are several predefined variables that you can reference in your pipeline. Examples are:
@@ -250,9 +250,9 @@ There are several predefined variables that you can reference in your pipeline. 
 You can find a full list of predefined variables here [https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml).
 
 ### Pipeline Variables
-Pipeline variables are specified in Azure DevOps when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as “secrets” (we’ll cover secrets a bit later).
+Pipeline variables are specified in Azure DevOps when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as "secrets" (we’ll cover secrets a bit later).
 
-> **Note**: if you specify a variable in the YML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must not specify them in the “variables” section.
+> **Note**: if you specify a variable in the YML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must not specify them in the "variables" section.
 
 When should you use pipeline variables? This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you want to build in DEBUG some times and in RELEASE in other times: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline:
 TODO: show buildConfig var
@@ -262,7 +262,7 @@ TODO: show buildConfig var
 ### Secrets
 At some point you’re going to want a variable that isn’t visible in the build log: a password, an API Key etc. As I mentioned earlier, inline variables are never secret. You must mark a pipeline variable as secret in order to make it a secret, or you can create a dynamic variable that is secret.
 
-“Secret” in this case just means that the value is masked in the logs. It is still possible to expose the value of a secret if you really want to. A pipeline author could `echo` a secret to a file and then open the file to get the value of the secret.
+"Secret" in this case just means that the value is masked in the logs. It is still possible to expose the value of a secret if you really want to. A pipeline author could `echo` a secret to a file and then open the file to get the value of the secret.
 
 All is not lost though: you can put controls in place to ensure that nefarious developers cannot simply run updated pipelines – you should be using Pull Requests and Branch Policies to review changes to the pipeline itself (an advantage to having pipelines as code.. The point is, be careful with your secrets!
 
@@ -274,7 +274,7 @@ To create or set a variable dynamically, you can use [logging commands](https://
 ```yml
 - script: |
     curUser=$(whoami)
-    echo “##vso[task.setvariable variable=currentUser;]$curUser”
+    echo "##vso[task.setvariable variable=currentUser;]$curUser"
 ```
 
 > **Tip**: when writing bash or PowerShell commands, don’t confuse `$(var)` with `$var`. `$(var)` is interpolated by Azure DevOps when the step is executed, while `$var` is a bash or PowerShell variable. I often use `env` to create environment variables rather than dereferencing variables inline. For example, I could write:
@@ -298,13 +298,13 @@ This may come down to personal preference, but I’ve avoided confusion by consi
 To make the variable a secret, simple add `issecret=true` into the logging command:
 
 ```yml
-echo “##vso[task.setvariable variable=currentUser;issecret=true]$curUser”
+echo "##vso[task.setvariable variable=currentUser;issecret=true]$curUser"
 ```
 
 You could do the same thing using PowerShell:
 ```yml
 - powershell: |
-    Write-Host “##vso[task.setvariable variable=currentUser;]$env:UserName
+    Write-Host "##vso[task.setvariable variable=currentUser;]$env:UserName"
 ```
 
 > **Tip**: There are two flavors of PowerShell: `powershell` is for Windows and `pwsh` is for PowerShell Core which is cross-platform (so it can run on Linux and Mac!). 
@@ -314,7 +314,7 @@ One special case of a dynamic variable is a calculated build number. For that, c
 ```yml
 - script: |
     buildNum=$(...)  # calculate the build number somehow
-    echo “##vso[build.updatebuildnumber]$buildNum”
+    echo "##vso[build.updatebuildnumber]$buildNum"
 ```
 
 Other logging commands are documented here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands)
