@@ -319,4 +319,42 @@ One special case of a dynamic variable is a calculated build number. For that, c
 
 Other logging commands are documented here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands)
 
+### Variable Groups
+TODO
+
+### KeyVault
+TODO
+
+## Templates
+TODO 
+
+### Step Templates
+TODO
+
+### Job Templates
+TODO
+
+### Parameters vs Vars
+explain difference
+
+## Multi-Stage Pipelines
+Intro; why this is necessary; discussion of CI/CD and differences
+### Deployment jobs
+TODO; show example
+
+### Environments; 
+authorization, checks, k8s environments
+
+### Endpoints; 
+Azure endpoint, generic endpoint
+
+## Advanced Topics
+### Container jobs; discuss, show example
+### Decorators
+### Pipelines API
+### Schemas; ?? show schema, discuss why you would need it (control of inheritance etc.)
+
+## Lessons Learned
+Auditability vs segregation of duty; 
+discuss coding everything vs coding just steps and having vars separate
 
