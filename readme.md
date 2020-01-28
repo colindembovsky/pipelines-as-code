@@ -116,7 +116,7 @@ To make a date-based number, you can use the format `$(Date:yyyy-mm-dd-HH-mm)` t
 You can also dynamically set the build number if you need it to be calculated as part of the build. This is useful if you use GitFlow or some other mechanism to create build numbers. We’ll cover this scenario later when we explore dynamic variables later on.
 
 ### Triggers
-As mentioned before, if there is no explicit `triggers` section, then it is implied that any commit to any path in any branch will trigger this pipeline to run. You can be more explicit though using `branches` and/or `path` or `artifact` (TODO).
+As mentioned before, if there is no explicit `triggers` section, then it is implied that any commit to any path in any branch will trigger this pipeline to run. You can be more explicit though using filters such as `branches` and/or `paths`.
 
 Let’s consider this trigger:
 
@@ -136,7 +136,7 @@ trigger:
     - master
 ```
 
-> **TIP**: You can get the name of the branch from the variable Pipeline.Build.Version (TODO)
+> **TIP**: You can get the name of the branch from the variables `Build.SourceBranch` (for the full name like `refs/heads/master`) or `Build.SourceBranchName` (for the short name like `master`).
 
 What about a trigger for any branch with a name that starts with `topic/` and only if the change is in the `webapp` folder?
 
@@ -166,37 +166,57 @@ You can find all the documentation on triggers here: [https://docs.microsoft.com
 ### Jobs
 A job is a set of steps that are excuted by an agent in a queue (or pool). Jobs are atomic – that is, they are executed wholly on a single agent. You can configure the same job to run on multiple agents at the same time, but even in this case the entire set of steps in the job are run on every agent. If you need some steps to run on one agent and some on another, you’ll need two jobs.
 
-A job has the following attributes:
-1. name – a reference name, useful for specifying job dependencies
+A job has the following attributes besides its name:
 1. displayName – a friendly name
+1. dependsOn - a way to specify dependencies and ordering of multiple jobs
 1. condition – a binary expression: if this evaluates to true, the job runs; if false, the job is skipped
+1. strategy - used to control how jobs are parallelized
+1. continueOnError - to specify if the remainder of the pipeline should continue or not if this job fails
 1. pool – the name of the pool (queue) to run this job on
+1. workspace - managing the source workspace
+1. container - for specifying a container image to execute the job in - more on this later
 1. variables – variables scoped to this job
 1. steps – the set of steps to execute
-1. TODO: verify other attributes
+1. timeoutInMinutes and cancelTimeoutInMinutes for controlling timeouts
+1. services - sidecar services that you can spin up to augment this job, such as spinning up a database container for integration tests
+
+There are two major types of job: `job` and `deployment`. Deployments are a specialization of jobs that add some extra metadata and are intended for - you guessed it - _deployment_ jobs.
 
 ### Checkout
-While this is really an alias for the “Checkout” task (TODO), it bears mentioning. Classic builds implicitly checkout any repository artifacts, but YML pipelines must explicitly checkout source. If the pipeline is in the same repo as the app code, you can simply “checkout: self”. If you’re running a deployment job, you may not have to check anything out at all, so you can save some time by not specifying a checkout step – though you’re probably going to have a “download” step for downloading artifacts. Again, that’s something you’ll have to explicitly specify.
+Classic builds implicitly checkout any repository artifacts, but pipelines require you to be more explicit using the `checkout` keyword:
+- Jobs check out the repo they are contained in automatically unless you specify `checkout: none`.
+- Deployment jobs do not automatically check out the repo, so you'll need to specify `checkout: self` for deployment jobs if you want to get access to files in the YML file's repo.
 
-What if your job requires source code in another repository? You’ll need to use `resources`.
+### Download
+Downloading artifacts requires you to use the `download` keyword. Downloads also work the opposite way for jobs and dpeloyment jobs:
+- Jobs do not download anything unless you explicitly define a `download`
+- Deployment jobs implicitly perform a `download: current` which downloads any pipeline artifacts that have been created in the current pipeline. To prevent this, you must specify `download: none`.
 
 ### Resources
-Resources let you reference other repositories (and a few other constructs like container images TODO). To reference code in another repo, specify that repo in the `resources` section and then reference it via its alias in the `checkout` step.
+What if your job requires source code in another repository? You’ll need to use `resources`. Resources let you reference:
+1. other repositories
+1. pipelines
+1. builds (classic builds)
+1. containers (for container jobs)
+1. packages
 
-TODO: Example of checkout of other repo
+To reference code in another repo, specify that repo in the `resources` section and then reference it via its alias in the `checkout` step:
+
+```yml
+resources:
+  repositories:
+  - repository: appcode
+    type: git
+    name: otherRepo
+
+steps:
+- checkout: appcode
+```
 
 ### Steps are Tasks
 Steps are the actual “things” that execute, in the order that they are specified in the job. Each step is a task: there are out of the box (OOB) tasks that come with Azure DevOps, many of which have aliases, and there are tasks that get installed to your Azure DevOps account via the marketplace.
 
-The step `checkout: self` is really an alias for:
-
-```yml
-TODO
-```
-
-Similarly, “script” is an alias for `TODO`.
-
-Creating custom tasks is beyond the scope of this chapter, but you can see how to create your own custom tasks here (TODO).
+Creating custom tasks is beyond the scope of this chapter, but you can see how to create your own custom tasks here [https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops).
 
 ## Variables
 It would be tough to achieve any sort of sophistication in your pipelines without variables. There are several types of variables, though this classification is mine and pipelines don’t distinguish between these types. However, I’ve found it useful to categorize pipeline variables to help teams understand some of the nuances that occur when dealing with them.
@@ -223,11 +243,11 @@ TODO: var, image tag, image push
 
 ### Predefined Variables
 There are several predefined variables that you can reference in your pipeline. Examples are:
-- Source branch TODO
-- Trigger type TODO
-- Artifact staging directory TODO
+- Source branch: `Build.SourceBranch`
+- Build reason: `Build.Reason`
+- Artifact staging directory: `Build.ArtifactStagingDirectory`
 
-You can find a full list of predefined variables here (TODO).
+You can find a full list of predefined variables here [https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml).
 
 ### Pipeline Variables
 Pipeline variables are specified in Azure DevOps when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as “secrets” (we’ll cover secrets a bit later).
@@ -249,11 +269,11 @@ All is not lost though: you can put controls in place to ensure that nefarious d
 ### Dynamic Variables and Logging Commands
 Dynamic variables are variables that are created and/or calculated at run time. A good example is using the `az cli` to retrieve the connection string to a storage account so that you can inject the value into a web.config. Another example is dynamically calculating a build number in a script.
 
-To create or set a variable dynamically, you can use logging commands (TODO reference). Imagine you need to get the username of the current user for use in subsequent steps. Here’s how you can create a variable called `currentUser` with the value:
+To create or set a variable dynamically, you can use [logging commands](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash). Imagine you need to get the username of the current user for use in subsequent steps. Here’s how you can create a variable called `currentUser` with the value:
 
 ```yml
 - script: |
-    export curUser=$(whoami)
+    curUser=$(whoami)
     echo “##vso[task.setvariable variable=currentUser;]$curUser”
 ```
 
@@ -273,25 +293,30 @@ but I can also use environment variables:
 
 This may come down to personal preference, but I’ve avoided confusion by consistently using env for my scripts!
 
+> **Tip**: `env` works for PowerShell tasks too! However, you have to dereference using `$env:VAR`.
+
 To make the variable a secret, simple add `issecret=true` into the logging command:
 
 ```yml
 echo “##vso[task.setvariable variable=currentUser;issecret=true]$curUser”
 ```
 
-You could do the same thing using PowerShell (TODO):
+You could do the same thing using PowerShell:
 ```yml
-- pwsh: |
-    $curUser = Get-Username
-    Write-Host “##vso[task.setvariable variable=currentUser;]$curUser”
+- powershell: |
+    Write-Host “##vso[task.setvariable variable=currentUser;]$env:UserName
 ```
 
-One special case of a dynamic variable is a calculated build number. For that, calculate the build number however you need to and then use this logging command (TODO):
+> **Tip**: There are two flavors of PowerShell: `powershell` is for Windows and `pwsh` is for PowerShell Core which is cross-platform (so it can run on Linux and Mac!). 
+
+One special case of a dynamic variable is a calculated build number. For that, calculate the build number however you need to and then use the `build.updatebuildnumber` logging command:
 
 ```yml
-Write-Host “##vso[task.setbuildnumber]$curUser”
+- script: |
+    buildNum=$(...)  # calculate the build number somehow
+    echo “##vso[build.updatebuildnumber]$buildNum”
 ```
 
-> **Tip**: `env` works for PowerShell tasks too! However, you have to dereference using `$env:VAR`. (TODO)
+Other logging commands are documented here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands)
 
 
