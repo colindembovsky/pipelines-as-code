@@ -443,7 +443,7 @@ What if we created a template for the common steps so that we only had to mainta
 ```yml
 # templates/steps.yml
 parameters:
-- owner: ''
+  owner: ''
 
 steps:
 - script: echo "ConStr is $(ConStr) in enviroment $(environment) and is owned by ${{ parameters.owner }}"
