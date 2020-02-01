@@ -6,7 +6,7 @@ pool:
   
 jobs:
 - job: DEV
-  variabes:
+  variables:
   - group: WebApp-DEV
   - name: enviroment
     value: DEV
@@ -14,7 +14,7 @@ jobs:
   - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
 
 - job: QA
-  variabes:
+  variables:
   - group: WebApp-QA
   - name: enviroment
     value: DEV
@@ -22,7 +22,7 @@ jobs:
   - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
 
 - job: Prod
-  variabes:
+  variables:
   - group: WebApp-Prod
   - name: enviroment
     value: DEV
