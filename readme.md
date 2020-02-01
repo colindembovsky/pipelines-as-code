@@ -280,7 +280,7 @@ Running the pipeline without editing the variable produces the following log:
 
 ![Debug Value](images/pipeline-var-run1.png "Default value in a run")
 
-> **Tip**: If the pipeline is not manually queued, but triggered, the pipeline variable defaults to the value that you specify in the parameter.
+> **Tip**: If the pipeline is not manually queued, but triggered, any pipeline variables default to the value that you specify in the parameter when you create it.
 
 If we update the value when we queue the pipeline to `release`, of course the log reflects the new value:
 
@@ -370,6 +370,12 @@ The image above shows two variable groups: one for DEV and one for QA. Let's cre
 > **Note**: Security is beyond the scope of this chapter - but you can specify who has permission to view/edit variable groups, as well as which pipelines are allowd to consume them. You can of course mark any value in the variable group as secret by clicking the padlock icon next to the value.
 
 > **Tip**: The trick to making variable groups work for environment values is to keep the names the same in each variable group. That way the only setting you need to update between environments is the variable group name. I suggest getting the pipeline to work completely for one environment, and then `Clone` the variable group - that way you're assured you're using the same variable names.
+
+#### Consuming Variable Groups
+Now that we have some variable groups, we can consume them in a pipeline. Let's consider this pipeline:
+
+```yml
+```
 
 ### KeyVault
 TODO

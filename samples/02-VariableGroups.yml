@@ -1,0 +1,30 @@
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+  
+jobs:
+- job: DEV
+  variabes:
+  - group: WebApp-DEV
+  - name: enviroment
+    value: DEV
+  steps:
+  - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
+
+- job: QA
+  variabes:
+  - group: WebApp-QA
+  - name: enviroment
+    value: DEV
+  steps:
+  - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
+
+- job: Prod
+  variabes:
+  - group: WebApp-Prod
+  - name: enviroment
+    value: DEV
+  steps:
+  - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
