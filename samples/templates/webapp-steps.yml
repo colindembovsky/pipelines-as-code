@@ -1,0 +1,5 @@
+parameters:
+- owner: ''
+
+steps:
+- script: echo "ConStr is $(ConStr) in enviroment $(environment) and is owned by ${{ parameters.owner }}"

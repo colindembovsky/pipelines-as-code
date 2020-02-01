@@ -371,20 +371,126 @@ The image above shows two variable groups: one for DEV and one for QA. Let's cre
 
 > **Tip**: The trick to making variable groups work for environment values is to keep the names the same in each variable group. That way the only setting you need to update between environments is the variable group name. I suggest getting the pipeline to work completely for one environment, and then `Clone` the variable group - that way you're assured you're using the same variable names.
 
+#### KeyVault
+You can also integrate variable groups to Azure KeyVaults. When you create the variable group, instead of specifying values in the variable group itself, you connect to a KeyVault and specify which keys from the vault should be synchronized when the variable group is instantiated in a pipeline run:
+
+![KeyVault Variable Group](images/key-vault.png "Creating a KeyVault variable group")
+
 #### Consuming Variable Groups
 Now that we have some variable groups, we can consume them in a pipeline. Let's consider this pipeline:
 
 ```yml
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+  
+jobs:
+- job: DEV
+  variables:
+  - group: WebApp-DEV
+  - name: environment
+    value: DEV
+  steps:
+  - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
+
+- job: QA
+  variables:
+  - group: WebApp-QA
+  - name: environment
+    value: QA
+  steps:
+  - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
+
+- job: Prod
+  variables:
+  - group: WebApp-Prod
+  - name: environment
+    value: Prod
+  steps:
+  - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
 ```
 
-### KeyVault
-TODO
+When this pipeline runs, we see the DEV, QA and Prod values from the variable groups:
+
+![Value in DEV](images/var-group-dev.png "Value in DEV")
+
+![Value in Prod](images/var-group-prod.png "Value in Prod")
+
+> **Note**: The format for inline varialbes alters slightly when you have variable groups - you have to use the `- name/value` format.
+
+This example demonstrates a couple of things:
+1. Integration with variable groups
+1. Job variables - that is, jobs can have variables too, not just pipelines
+1. You can specify multiple jobs in a single pipeline - in fact, as we'll see later, pipelines can have multiple stages, and each stage can have multiple jobs.
+
+What you may have noticed is that every job has the same steps - so there is plenty of copy/paste going on here! Surely there's a better way to repeat common steps? Yes, there is a btter way - we are creating code, after all! Enter templates...
 
 ## Templates
-TODO 
+Templates are like _functions_ - they allow reuse and much better maintainability. There are two types of templates: _step_ templates and _job_ templates. 
 
 ### Step Templates
-TODO
+Let's consider the previous example pipeline. Each job had exactly the same `steps` section:
+
+```yml
+  steps:
+  - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
+```
+
+What if we created a template for the common steps so that we only had to maintain it in a single place? All we have to do is place the steps into a separate steps YML file - and we can even parameterize the template:
+
+```yml
+# templates/steps.yml
+parameters:
+- owner: ''
+
+steps:
+- script: echo "ConStr is $(ConStr) in enviroment $(environment) and is owned by ${{ parameters.owner }}"
+```
+
+This is familiar, but slightly different. The primary difference is the way that parameters are dereferenced, using `${{}}`, which is different from the way variables are deferenced using `$()`. We'll discuss the differences between parameters and variables in more detail later.
+
+Given this template, we can update the main pipeline:
+```yml
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+  
+jobs:
+- job: DEV
+  variables:
+  - group: WebApp-DEV
+  - name: environment
+    value: Dev
+  steps:
+  - template: templates/webapp-steps.yml
+    parameters:
+      owner: Dylan
+
+- job: QA
+  variables:
+  - group: WebApp-QA
+  - name: environment
+    value: QA
+  steps:
+  - template: templates/webapp-steps.yml
+    parameters:
+      owner: Bob
+
+- job: Prod
+  variables:
+  - group: WebApp-Prod
+  - name: environment
+    value: Prod
+  steps:
+  - template: templates/webapp-steps.yml
+    parameters:
+      owner: Sally
+```
+
 
 ### Job Templates
 TODO

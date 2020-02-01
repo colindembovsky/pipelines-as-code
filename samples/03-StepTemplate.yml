@@ -1,0 +1,36 @@
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+  
+jobs:
+- job: DEV
+  variables:
+  - group: WebApp-DEV
+  - name: environment
+    value: Dev
+  steps:
+  - template: templates/webapp-steps.yml
+    parameters:
+      owner: Dylan
+
+- job: QA
+  variables:
+  - group: WebApp-QA
+  - name: environment
+    value: QA
+  steps:
+  - template: templates/webapp-steps.yml
+    parameters:
+      owner: Bob
+
+- job: Prod
+  variables:
+  - group: WebApp-Prod
+  - name: environment
+    value: Prod
+  steps:
+  - template: templates/webapp-steps.yml
+    parameters:
+      owner: Sally
