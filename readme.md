@@ -236,7 +236,7 @@ This will write `Hello, colin!` to the log.
 ### Inline Variables
 These are variables that are hard coded into the pipeline YML file itself. Use these for specifying values that are not sensitive and that are unlikely to change. A good example is an image name: let’s imagine you have a pipeline that is building a Docker container and pushing that container to a registry. You are probably going to end up referencing the image name in several steps (such as tagging the image and then pushing the image). Instead of using a value in-line in each step, you can create a variable and use it multiple times. This keeps to the DRY (Do not repeat yourself) principle and ensures that you don’t inadvertently misspell the image name in one of the steps.
 
-TODO: var, image tag, image push
+TODO: var, docker build image tag, docker push image push
 
 > **Note**: obviously you cannot create "secret" inline variables. If you need a variable to be secret, you’ll have to use pipeline variables, variable groups or dynamic variables.
 
@@ -491,17 +491,31 @@ jobs:
       owner: Sally
 ```
 
+As expected, the output for the QA environment is showing all the QA-specific values, both for the variables as well as the parameter:
+
+![Step Template Run](images/step-template-run.png "Values in QA for the step template run")
+
+We can also create job templates.
 
 ### Job Templates
-TODO
+Job templates are essentially the same as step templates - but they allow us to specify entire jobs, not just sets of steps, as a template. This is particularly useful for deployment scenarios, where we want to use the same job to deploy to multiple environments, just with environment-specific values. This is touching on multi-stage pipelines, which we'll get to shortly. For now, let's look at what you can do with job templates.
+
+TODO: from here!!
 
 ### Parameters vs Vars
 explain difference
+string vs object
+
+### Expressions
+show examples
+if
+loop
+inject steps
 
 ## Multi-Stage Pipelines
 Intro; why this is necessary; discussion of CI/CD and differences
 ### Deployment jobs
-TODO; show example
+show example
 
 ### Environments; 
 authorization, checks, k8s environments
