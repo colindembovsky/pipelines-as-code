@@ -252,7 +252,11 @@ You can find a full list of predefined variables here [https://docs.microsoft.co
 ### Pipeline Variables
 Pipeline variables are specified in Azure DevOps when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as "secrets" (we’ll cover secrets a bit later).
 
-> **Note**: if you specify a variable in the YML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must not specify them in the "variables" section.
+> **Note**: if you specify a variable in the YML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must **not** specify them in the "variables" section.
+
+When should you use pipeline variables? This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you sometimes want to build in `DEBUG` other times in `RELEASE`: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline:
+
+
 
 When should you use pipeline variables? This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you want to build in DEBUG some times and in RELEASE in other times: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline:
 TODO: show buildConfig var

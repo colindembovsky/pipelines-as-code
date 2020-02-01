@@ -1,0 +1,12 @@
+name: 1.0$(Rev:.r)
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+  
+jobs:
+- job: echo
+  steps:
+  - script: echo "BuildConfiguration is $(buildConfiguration)"
