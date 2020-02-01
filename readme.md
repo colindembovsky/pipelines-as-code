@@ -259,9 +259,28 @@ When should you use pipeline variables? This is useful if you plan on triggering
 
 If you specify `Let users override this value when running this pipeline` then users can change the value of the pipeline when they manully queue it. Specifying `Keep this value secret` will make this value a secret (Azure DevOps will mask the value).
 
+Let's look at a simple pipeline that consumes the pipeline variable:
+
+```yml
+name: 1.0$(Rev:.r)
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+  
+jobs:
+- job: echo
+  steps:
+  - script: echo "BuildConfiguration is $(buildConfiguration)"
+```
+
 Running the pipeline without editing the variable produces the following log:
 
 ![Debug Value](images/pipeline-var-run1.png "Default value in a run")
+
+> **Tip**: If the pipeline is not manually queued, but triggered, the pipeline variable defaults to the value that you specify in the parameter.
 
 If we update the value when we queue the pipeline to `release`, of course the log reflects the new value:
 
@@ -334,7 +353,23 @@ One special case of a dynamic variable is a calculated build number. For that, c
 Other logging commands are documented here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands)
 
 ### Variable Groups
-TODO
+Creating inline variables is fine for values that are not sensitive and that are not likely to change very often. Pipeline variables are useful for pipelines that you want to trigger manuall. But there is another option that is particularly useful for multi-stage pipelines (we'll cover these in more detail later).
+
+Imagine you have a web application (that connects to a database) that you want to build and then push to DEV, QA and Prod environments. Let's consider just one config setting - the database connection string. Where should you store the value for the connection string? Perhaps you could store the DEV connection string in source control, but what about QA and Prod? You probably don't want those passwords stored in source control.
+
+You could create them as pipeline variables - but then you'd have to prefix the value with an environment or something to distinguish the QA value from the Prod value. What happens if you add in a STAGING environment? What if you have other settings like API Keys? This can quickly become a mess.
+
+This is what Variable Groups are designed for. You can find variable groups in the `Library` hub in Azure DevOps:
+
+![Accessing the Library](images/library.png "Accessing the Library")
+
+The image above shows two variable groups: one for DEV and one for QA. Let's create a new one for Prod, specifying the same variable name (`ConStr`) but this time entering in the value for Prod:
+
+![Adding a Variable Group](images/prod-var-group.png "Creating the Prod variable group")
+
+> **Note**: Security is beyond the scope of this chapter - but you can specify who has permission to view/edit variable groups, as well as which pipelines are allowd to consume them. You can of course mark any value in the variable group as secret by clicking the padlock icon next to the value.
+
+> **Tip**: The trick to making variable groups work for environment values is to keep the names the same in each variable group. That way the only setting you need to update between environments is the variable group name. I suggest getting the pipeline to work completely for one environment, and then `Clone` the variable group - that way you're assured you're using the same variable names.
 
 ### KeyVault
 TODO
