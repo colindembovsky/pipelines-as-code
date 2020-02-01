@@ -8,7 +8,7 @@ jobs:
 - job: DEV
   variables:
   - group: WebApp-DEV
-  - name: enviroment
+  - name: environment
     value: DEV
   steps:
   - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
@@ -16,7 +16,7 @@ jobs:
 - job: QA
   variables:
   - group: WebApp-QA
-  - name: enviroment
+  - name: environment
     value: DEV
   steps:
   - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
@@ -24,7 +24,7 @@ jobs:
 - job: Prod
   variables:
   - group: WebApp-Prod
-  - name: enviroment
+  - name: environment
     value: DEV
   steps:
   - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
