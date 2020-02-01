@@ -88,7 +88,6 @@ If you run this, you'll see output similar to this:
 
 ![Hello World Log](images/hello-world-log.png "Hello World Pipeline log")
 
-
 While this first example is fairly simple, it shows the anatomy of a basic pipeline. Most pipelines will have these components:
 
 1. Name – though often this is skipped (if it is skipped, a date-based name is generated automatically)
@@ -250,25 +249,36 @@ There are several predefined variables that you can reference in your pipeline. 
 You can find a full list of predefined variables here [https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml).
 
 ### Pipeline Variables
-Pipeline variables are specified in Azure DevOps when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as "secrets" (we’ll cover secrets a bit later).
+Pipeline variables are specified in Azure DevOps in the pipeline UI when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as "secrets" (we’ll cover secrets a bit later). This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time.
 
 > **Note**: if you specify a variable in the YML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must **not** specify them in the "variables" section.
 
-When should you use pipeline variables? This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you sometimes want to build in `DEBUG` other times in `RELEASE`: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline:
+When should you use pipeline variables? This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you sometimes want to build in `DEBUG` other times in `RELEASE`: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline, giving it a default value of `debug`:
 
+![Pipeline Variable](images/pipeline-var.png "Adding a pipeline variable")
 
+If you specify `Let users override this value when running this pipeline` then users can change the value of the pipeline when they manully queue it. Specifying `Keep this value secret` will make this value a secret (Azure DevOps will mask the value).
 
-When should you use pipeline variables? This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you want to build in DEBUG some times and in RELEASE in other times: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline:
-TODO: show buildConfig var
+Running the pipeline without editing the variable produces the following log:
+
+![Debug Value](images/pipeline-var-run1.png "Default value in a run")
+
+If we update the value when we queue the pipeline to `release`, of course the log reflects the new value:
+
+![Update the variable](images/pipeline-var-update1.png "Click Update when queueing the run")
+
+![Enter the new value](images/pipeline-var-update2.png "Specify the new value")
+
+![Release Value](images/pipeline-var-run2.png "Overriding the value in a run")
 
 > **Note**: referencing a pipeline variable is exactly the same as referencing an inline variable – once again, the distinction is purely for discussion.
 
 ### Secrets
 At some point you’re going to want a variable that isn’t visible in the build log: a password, an API Key etc. As I mentioned earlier, inline variables are never secret. You must mark a pipeline variable as secret in order to make it a secret, or you can create a dynamic variable that is secret.
 
-"Secret" in this case just means that the value is masked in the logs. It is still possible to expose the value of a secret if you really want to. A pipeline author could `echo` a secret to a file and then open the file to get the value of the secret.
+"Secret" in this case just means that the value is masked in the logs. It is still possible to expose the value of a secret if you really want to. A malicious pipeline author could `echo` a secret to a file and then open the file to get the value of the secret.
 
-All is not lost though: you can put controls in place to ensure that nefarious developers cannot simply run updated pipelines – you should be using Pull Requests and Branch Policies to review changes to the pipeline itself (an advantage to having pipelines as code.. The point is, be careful with your secrets!
+All is not lost though: you can put controls in place to ensure that nefarious developers cannot simply run updated pipelines – you should be using Pull Requests and Branch Policies to review changes to the pipeline itself (an advantage to having pipelines as code). The point is, you still need to be careful with your secrets!
 
 ### Dynamic Variables and Logging Commands
 Dynamic variables are variables that are created and/or calculated at run time. A good example is using the `az cli` to retrieve the connection string to a storage account so that you can inject the value into a web.config. Another example is dynamically calculating a build number in a script.
