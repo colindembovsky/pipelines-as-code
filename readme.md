@@ -234,9 +234,34 @@ steps:
 This will write `Hello, colin!` to the log.
 
 ### Inline Variables
-These are variables that are hard coded into the pipeline YML file itself. Use these for specifying values that are not sensitive and that are unlikely to change. A good example is an image name: let’s imagine you have a pipeline that is building a Docker container and pushing that container to a registry. You are probably going to end up referencing the image name in several steps (such as tagging the image and then pushing the image). Instead of using a value in-line in each step, you can create a variable and use it multiple times. This keeps to the DRY (Do not repeat yourself) principle and ensures that you don’t inadvertently misspell the image name in one of the steps.
+These are variables that are hard coded into the pipeline YML file itself. Use these for specifying values that are not sensitive and that are unlikely to change. A good example is an image name: let’s imagine you have a pipeline that is building a Docker container and pushing that container to a registry. You are probably going to end up referencing the image name in several steps (such as tagging the image and then pushing the image). Instead of using a value in-line in each step, you can create a variable and use it multiple times. This keeps to the DRY (Do not Repeat Yourself) principle and ensures that you don’t inadvertently misspell the image name in one of the steps. In the following example, we create a variable called `imageName` so that we only have to maintain the value once rather than in multiple places:
 
-TODO: var, docker build image tag, docker push image push
+```yml
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  imageName: myregistry/api-image
+
+steps:
+- task: Docker@2
+  displayName: Build an image
+  inputs:
+    repository: $(imageName)
+    command: build
+    Dockerfile: api/Dockerfile
+
+- task: Docker@2
+  displayName: Push image
+  inputs:
+    containerRegistry: $(ACRRegistry)
+    repository: $(imageName)
+    command: push
+    tags: $(Build.BuildNumber)
+```
 
 > **Note**: obviously you cannot create "secret" inline variables. If you need a variable to be secret, you’ll have to use pipeline variables, variable groups or dynamic variables.
 
@@ -449,7 +474,7 @@ steps:
 - script: echo "ConStr is $(ConStr) in enviroment $(environment) and is owned by ${{ parameters.owner }}"
 ```
 
-This is familiar, but slightly different. The primary difference is the way that parameters are dereferenced, using `${{}}`, which is different from the way variables are deferenced using `$()`. We'll discuss the differences between parameters and variables in more detail later.
+This should look familiar: but it is slightly different. The primary difference is the way that parameters are dereferenced, using `${{}}` notation, which is different from the way variables are deferenced using `$()`. We'll discuss the differences between parameters and variables in more detail later.
 
 Given this template, we can update the main pipeline:
 ```yml
@@ -495,14 +520,78 @@ As expected, the output for the QA environment is showing all the QA-specific va
 
 ![Step Template Run](images/step-template-run.png "Values in QA for the step template run")
 
+Of course the step template is now longer than the original step was - but what if you had 5 or 6 steps? Step templates allow you to maintain those steps in one place and make them reusable.
+
 We can also create job templates.
 
 ### Job Templates
 Job templates are essentially the same as step templates - but they allow us to specify entire jobs, not just sets of steps, as a template. This is particularly useful for deployment scenarios, where we want to use the same job to deploy to multiple environments, just with environment-specific values. This is touching on multi-stage pipelines, which we'll get to shortly. For now, let's look at what you can do with job templates.
 
-TODO: from here!!
+```yml
+# templates/deploy-webapp.yml
+parameters:
+  pool: {}
+  environmentName: 'dev'
+  azureSubscription: ''
+  appName: 'mywebapp'
+  containerRegistry: 'myacr'
+  imageRepo: 'webapp'
+  tag: '$(Build.BuildNumber)'
 
-### Parameters vs Vars
+jobs:
+- job: deploy
+  displayName: 'Deploy to ${{ parameters.environmentName }}'
+  pool: ${{ parameters.pool }}
+  steps:
+  - task: AzureWebAppContainer@1
+    displayName: 'Azure Web App on Container Deploy'
+    inputs:
+      azureSubscription: '${{ parameters.azureSubscription }}'
+      appName: '${{ parameters.appName }}'
+      containers: '${{ parameters.containerRegistry }}/${{ parameters.imageRepository }}:${{ parameters.tag }}'
+```
+
+This template defines a job that can be executed. There are also some interesting parameters:
+- Instead of hard-coding the `pool`, the pool can be passed in as a parameter, allowing us to run this job on any queue that has the `AzureWebAppContainer` task prerequisites installed
+- The Azure subscription is parameterized, since we probably have different subscriptions for different environments (more on _service connections_ later)
+- The `environmentName`, `appName`, `containerRegistry`, `imageRepo` and `tag` parameters all specify defaults
+
+We could now have a DEV pipeline and a PROD pipeline:
+
+```yml
+# dev-deploy.yml
+trigger:
+  branches: 
+    exclude:
+    - master
+
+jobs:
+- job: templates/deploy-webapp.yml
+  parameters:
+  pool: 
+    name: my-private-ubuntu-queue  # this is a private queue
+    azureSubscription: 'My-Dev-AzureSubscription'
+```
+
+```yml
+# prod-deploy.yml
+trigger:
+  branches: 
+    include:
+    - master
+
+jobs:
+- job: templates/deploy-webapp.yml
+  parameters:
+  pool: 
+    vmImage: ubuntu-latest  # use the hosted queue
+    environmentName: PROD
+    azureSubscription: 'My-PROD-AzureSubscription'
+```
+
+Later when we discuss multi-stage pipelines we'll see how we can create a single pipeline with multiple stages rather than having a pipeline per environment.
+
+### Parameters vs Variables
 explain difference
 string vs object
 
@@ -511,6 +600,9 @@ show examples
 if
 loop
 inject steps
+
+### Service Connections
+intro; abstract credentials; authorizing
 
 ## Multi-Stage Pipelines
 Intro; why this is necessary; discussion of CI/CD and differences
