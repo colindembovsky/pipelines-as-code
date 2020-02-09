@@ -806,39 +806,7 @@ Here's a snippet of the pipeline that references the template:
         serviceShortName: couponsapi
         imageRepo: 'coupon.api'
         skip: false
-      - serviceName: 'profiles-api'
-        serviceShortName: profilesapi
-        imageRepo: 'profile.api'
-        skip: false
-      - serviceName: 'popular-products-api'
-        serviceShortName: popularproductsapi
-        imageRepo: 'popular-product.api'
-        skip: false
-      - serviceName: 'stock-api'
-        serviceShortName: stockapi
-        imageRepo: 'stock.api'
-        skip: false
-      - serviceName: 'image-classifier-api'
-        serviceShortName: imageclassifierapi
-        imageRepo: 'image-classifier.api'
-        skip: false
-      - serviceName: 'cart-api'
-        serviceShortName: cartapi
-        acrName: $(acrName)
-        imageRepo: 'cart.api'
-        skip: false
-      - serviceName: 'login-api'
-        serviceShortName: loginapi
-        imageRepo: 'login.api'
-        skip: false
-      - serviceName: 'mobilebff'
-        serviceShortName: mobilebff
-        imageRepo: 'mobileapigw'
-        skip: false
-      - serviceName: 'webbff'
-        serviceShortName: webbff
-        imageRepo: 'webapigw'
-        skip: false
+      ...
       - serviceName: 'rewards-registration-api'
         serviceShortName: rewardsregistrationapi
         imageRepo: 'rewards.registration.api'
@@ -883,11 +851,49 @@ Deploying foo
 Deploying baz
 ```
 
-We can use expressions to inject steps.
+We can use expressions to inject steps. Imagine you have a set of steps that you want to repeat with different parameters - except that in some cases, a slightly different middle step needs to be executed. You can create a template that has a parameter called `middleSteps` where you can pass in the middle step!
 
-TODO here
+```yml
+# templates/steps.yml
+parameters:
+  environment: ''
+  middleSteps: []
+
+steps:
+- script: echo 'Prestep'
+- ${{ parameters.middleSteps }}
+- script: echo 'Post-step'
+```
+
+```yml
+# pipelineA
+jobs:
+- job: A
+  - steps: templates/steps.yml
+    parameters:
+      middleSteps:
+      - script: echo 'middle A step 1'
+      - script: echo 'middle A step 2'
+```
+
+```yml
+# pipelineB
+jobs:
+- job: B
+  - steps: templates/steps.yml
+    parameters:
+      middleSteps:
+      - script: echo 'This is job B middle step 1'
+      - task: ...  # some other task
+      - task: ...  # some other task
+```
+
+> **Note**: For a real world example of this, see this [template file](https://github.com/10thmagnitude/MLOpsDemo/blob/master/templates/job-train-model.yml). This is a demo where I have two scenarios for machine learning: a manual training process and an AutoML training process. The pre-training and post-training steps are the same, but the training steps are different: the template reflects this scenario by allowing me to pass in different `TrainingSteps` for each scenario.
+
+> **Note**: The complete list of functions like `eq`, `join`, `contains` and so on can be found [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops#functions).
 
 ### Service Connections
+TODO: from here
 intro; abstract credentials; authorizing
 
 ## Multi-Stage Pipelines
