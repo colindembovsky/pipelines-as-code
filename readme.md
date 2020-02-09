@@ -247,7 +247,9 @@ jobs:
   - script: echo 'job C'
 
 - job: D
-  dependsOn: C
+  dependsOn:
+  - B
+  - C
   steps:
   - script: echo 'job D'
 
