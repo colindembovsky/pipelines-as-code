@@ -114,6 +114,21 @@ To make a date-based number, you can use the format `$(Date:yyyy-mm-dd-HH-mm)` t
 
 You can also dynamically set the build number if you need it to be calculated as part of the build. This is useful if you use GitFlow or some other mechanism to create build numbers. We’ll cover this scenario later when we explore dynamic variables later on.
 
+#### Counters
+We'll cover functions later, but there is one function that bears mentioning here together with the build name: `counter`. The counter function returns a number that increments for each pipeline run. `counter` has two parameters that you must specify: `prefix` and `seed`. The `seed` is the starting number and the number increments for each `prefix` you specify. For example, imagine you are using a  Semantic Versioning (SemVer) for your build number, in the format `major`.`minor`.`patch`. You can use `counter` to start patch at 0 for each major/minor version and increment for each build like so:
+
+```yml
+variables:
+  major: 1
+  minor: 0
+  patch: $[counter(join(variables['major'], '.', variables['minor']), 0)]
+  version: $[join(variables['major'], '.', variables['minor'], '.', variables['patch'])]
+```
+
+> **Note**: `join` is a function that performs a concatenation of an array of elements into a string.
+
+The first run will result in `version` being `1.0.0`. The next run, `version` will be `1.0.1` and the next time will be `1.0.2`. Changing `minor` to 1 will cause `counter` to return 0 again (since the `prefix` is now `1.1` instead of `1.0`) so `version` will be `1.1.0`, then `1.1.1` and so on. Reverting minor back to 0 will cause `counter` to start where it left off for the `1.0` prefix (at value 3), so `version` will be `1.0.3`.
+
 ### Triggers
 As mentioned before, if there is no explicit `triggers` section, then it is implied that any commit to any path in any branch will trigger this pipeline to run. You can be more explicit though using filters such as `branches` and/or `paths`.
 
@@ -180,6 +195,75 @@ A job has the following attributes besides its name:
 1. services - sidecar services that you can spin up to augment this job, such as spinning up a database container for integration tests
 
 There are two major types of job: `job` and `deployment`. Deployments are a specialization of jobs that add some extra metadata and are intended for - you guessed it - _deployment_ jobs.
+
+### Dependencies
+You can define dependencies between jobs using the `dependensOn` property. This lets you specify sequences and fan-out and fan-in scenarios. If you do not explicitly define a dependency, a sequential dependency is implied. If you truly want jobs to run in parallel, you need to specify `dependsOn: none`.
+
+Let's look at a few examples. Consider this pipeline:
+
+```yml
+jobs:
+- job: A
+  steps:
+  # steps ommited for brevity
+
+- job: B
+  steps:
+  # steps ommited for brevity
+```
+
+Because no `dependsOn` was specified, the jobs will run sequentially: first `A` and then `B`.
+
+To have both jobs run in parallel, we just add `dependsOn: none` to job `B`:
+
+```yml
+jobs:
+- job: A
+  steps:
+  # steps ommited for brevity
+
+- job: B
+  dependsOn: none
+  steps:
+  # steps ommited for brevity
+```
+
+If we want to fan out and fan in, we can do that too:
+
+```yml
+jobs:
+- job: A
+  steps:
+  - script: echo 'job A'
+
+- job: B
+  dependsOn: A
+  steps:
+  - script: echo 'job B'
+
+- job: C
+  dependsOn: A
+  steps:
+  - script: echo 'job C'
+
+- job: D
+  dependsOn: C
+  steps:
+  - script: echo 'job D'
+
+- job: E
+  dependsOn:
+  - B
+  - D
+  steps:
+  - script: echo 'job E'
+```
+
+This will produce the following graph:
+
+![Job Dependency Graph](images/dependency-graph.png "Job Dependency Graph")
+
+> **Note**: Later we will discuss stages which allow jobs to be grouped into logical stages. Stages also have dependencies, and they work in exactly the same way as job dependencies.
 
 ### Checkout
 Classic builds implicitly checkout any repository artifacts, but pipelines require you to be more explicit using the `checkout` keyword:
@@ -591,15 +675,217 @@ jobs:
 
 Later when we discuss multi-stage pipelines we'll see how we can create a single pipeline with multiple stages rather than having a pipeline per environment.
 
-### Parameters vs Variables
-explain difference
-string vs object
+### Variable Templates
+There is another type of template that can be useful - if you have a set of inline variables that you want to share across multiple pipelines, you can create a template. The template can then be referenced in multiple pipelines:
+
+```yml
+# templates/variables.yml
+variables:
+- name: buildConfiguration
+  value: debug
+- name: buildArchitecture
+  value: x64
+```
+
+```yml
+# pipelineA.yml
+variables:
+- template: templates/variables.yml
+steps:
+- script: build x ${{ variables.buildArchitecture }} ${{ variables.buildConfiguration }}
+```
+
+```yml
+# pipelineB.yml
+variables:
+- template: templates/variables.yml
+steps:
+- script: echo 'Arch: ${{ variables.buildArchitecture }}, config ${{ variables.buildConfiguration }}'
+```
+
+### Precedence and Expansion
+Variables can be defined at various scopes in a pipeline. When you define a variable with the same name at more than one scope, you need to be aware of the precedence. You can read the documentation on precedence [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#expansion-of-variables).
+
+You should also be aware of _when_ variables are expanded. They are expanded at the beginning of the run, as well as before each step. This example shows how this works:
+
+```yml
+jobs:
+- job: A
+  variables:
+    a: 10
+  steps:
+    - bash: |
+        echo $(a)    # This will be 10
+        echo '##vso[task.setvariable variable=a]20'
+        echo $(a)    # This will also be 10, since the expansion of $(a) happens before the step
+    - bash: echo $(a)        # This will be 20, since the variables are expanded just before the step
+```
+
+### Variables vs Parameters
+We've seen variables and parameters in use so far. However, there are actually three ways to dereference variables. The official documentation calls these three methods macros, template expressions and runtime expressions.
+
+When you use `$()` to refer to a variable, you're using the macro syntax. Template parameters use the `${{}}` sytax. The [official documentation](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#understand-variable-syntax) describes these three methods of deferencing. In practice, I've almost never had to use the runtime expressions, which have the format `$[variables.var]`.
+
+In practice, the main thing to bear in mind is _when the value is injected_. `$()` variables are expanded at runtime, while `${{}}` are expanded at compile time. Knowing this rule can save you some headaches.
+
+The other notable difference is left vs right side: variables can only expand on the right side, while parameters can expand on left or right side. For example:
+
+```yml
+# valid syntax
+key: $(value)
+key: $[variables.value]
+${{ parameters.key }} : ${{ parameters.value }}
+
+# invalid syntax
+$(key): value
+$[variables.key]: value
+```
+
+> **Note**: If you try to reference a variable `$(foo)` and no value can be found, it is rendered as the literal string `$(foo)`. If you reference a parameter `${{ parameters.bar }}` or a runtime variable `$[variables.baz]` and no corresponding value can be found, they are rendered as an empty string.
+
+One final difference between variables and parameters: variables can only be strings, while parameters can be complex objects. The official syntax for variables and parameters is as follows:
+
+```yml
+variables: { string: string }
+
+parameters: { string: any }
+```
+
+Here's a real-life example from a [TailWind Traders pipeline](https://github.com/10thmagnitude/TailwindTraders-Backend/blob/master/Pipeline/azure-pipeline.yaml) I created. In this case, the repo contains several microservices that are deployed as Kubernetes services using Helm charts. Even though the code for each microservice is different, the _deployment_ for each is identical, except for the path to the Helm chart and the image repository.
+
+Thinking about this scenario, I wanted a template for deployment steps that I could parameterize. Rather than copy the entire template, I used a `for` expression to iterate over a map of complex properties (we'll cover expressions in the next section). For each service deployment, I wanted:
+- `serviceName`: The path to the service Helm chart
+- `serviceShortName`: Required because the deployment requires two steps: `bake` the manifest, and then `deploy` the baked manifest. The `deploy` task references the outout of the `bake` step, so I needed a name that wouldn't collide as I expanded it multiple times in the `for` loop. Here's a snippet of the template steps:
+
+```yml
+# templates/step-deploy-container-service.yml
+parameters:
+  serviceName: ''  # product-api
+  serviceShortName: '' # productapi
+  environment: dev
+  imageRepo: ''  # product.api
+  ...
+  services: []
+
+steps:
+- ${{ each s in parameters.services }}:
+  - ${{ if eq(s.skip, 'false') }}:
+    - task: KubernetesManifest@0
+      displayName: Bake ${{ s.serviceName }} manifest
+      name: bake_${{ s.serviceShortName }}
+      inputs:
+        action: bake
+        renderType: helm2
+        releaseName: ${{ s.serviceName }}-${{ parameters.environment }}
+        ...
+    - task: KubernetesManifest@0
+      displayName: Deploy ${{ s.serviceName }} to k8s
+      inputs:
+        manifests: $(bake_${{ s.serviceShortName }}.manifestsBundle)
+        imagePullSecrets: $(imagePullSecret)
+```
+
+Here's a snippet of the pipeline that references the template:
+
+```yml
+# pipeline.yml
+...
+  - template: templates/step-deploy-container-service.yml
+    parameters:
+      acrName: $(acrName)
+      environment: dev
+      ingressHost: $(IngressHost)
+      tag: $(tag)
+      autoscale: $(autoscale)
+      services:
+      - serviceName: 'products-api'
+        serviceShortName: productsapi
+        imageRepo: 'product.api'
+        skip: false
+      - serviceName: 'coupons-api'
+        serviceShortName: couponsapi
+        imageRepo: 'coupon.api'
+        skip: false
+      - serviceName: 'profiles-api'
+        serviceShortName: profilesapi
+        imageRepo: 'profile.api'
+        skip: false
+      - serviceName: 'popular-products-api'
+        serviceShortName: popularproductsapi
+        imageRepo: 'popular-product.api'
+        skip: false
+      - serviceName: 'stock-api'
+        serviceShortName: stockapi
+        imageRepo: 'stock.api'
+        skip: false
+      - serviceName: 'image-classifier-api'
+        serviceShortName: imageclassifierapi
+        imageRepo: 'image-classifier.api'
+        skip: false
+      - serviceName: 'cart-api'
+        serviceShortName: cartapi
+        acrName: $(acrName)
+        imageRepo: 'cart.api'
+        skip: false
+      - serviceName: 'login-api'
+        serviceShortName: loginapi
+        imageRepo: 'login.api'
+        skip: false
+      - serviceName: 'mobilebff'
+        serviceShortName: mobilebff
+        imageRepo: 'mobileapigw'
+        skip: false
+      - serviceName: 'webbff'
+        serviceShortName: webbff
+        imageRepo: 'webapigw'
+        skip: false
+      - serviceName: 'rewards-registration-api'
+        serviceShortName: rewardsregistrationapi
+        imageRepo: 'rewards.registration.api'
+        skip: true
+```
+
+In this case, `services` could not have been a variable since variables can only have `string` values. Hence I had to make it a parameter.
 
 ### Expressions
-show examples
-if
-loop
-inject steps
+There are a number of expressions that allow us to create more complex scenarios. The example above uses both the `for` and the `if` expressions, along with the boolean function `eq`. Expressions can be used to loop over steps or ignore steps (as an equivalent of setting the `condition` property to `false`). Let's look at an example in a bit more detail:
+
+```yml
+# templates/steps.yml
+parameters:
+  services: []
+
+steps:
+- ${{ each s in parameters.services }}:
+  - ${{ if eq(s.skip, 'false') }}:
+    - script: echo 'Deploying ${{ s.name }}'
+```
+
+If specify the following pipeline:
+```yml
+jobs:
+- job: deploy
+  - steps: templates/steps.yml
+    parameters:
+      services:
+      - name: foo
+        skip: false
+      - name: bar
+        skip: true
+      - name: baz
+        skip: false
+```
+
+we should get the following output from the steps:
+
+```
+Deploying foo
+Deploying baz
+```
+
+We can use expressions to inject steps.
+
+TODO here
 
 ### Service Connections
 intro; abstract credentials; authorizing
