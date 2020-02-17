@@ -304,7 +304,7 @@ Steps are the actual "things" that execute, in the order that they are specified
 Creating custom tasks is beyond the scope of this chapter, but you can see how to create your own custom tasks here [https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops).
 
 ## Variables
-It would be tough to achieve any sort of sophistication in your pipelines without variables. There are several types of variables, though this classification is mine and pipelines don’t distinguish between these types. However, I’ve found it useful to categorize pipeline variables to help teams understand some of the nuances that occur when dealing with them.
+It would be tough to achieve any sort of sophistication in your pipelines without variables. There are several types of variables, though this classification is partly mine and pipelines don’t distinguish between these types. However, I’ve found it useful to categorize pipeline variables to help teams understand some of the nuances that occur when dealing with them.
 
 Every variable is really a key:value pair. The key is the name of the variable, and it has a value.
 
@@ -357,18 +357,18 @@ There are several predefined variables that you can reference in your pipeline. 
 - Build reason: `Build.Reason`
 - Artifact staging directory: `Build.ArtifactStagingDirectory`
 
-You can find a full list of predefined variables here [https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml).
+You can find a full list of predefined variables [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml).
 
 ### Pipeline Variables
 Pipeline variables are specified in Azure DevOps in the pipeline UI when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as "secrets" (we’ll cover secrets a bit later). This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time.
 
 > **Note**: if you specify a variable in the YML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must **not** specify them in the "variables" section.
 
-When should you use pipeline variables? This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you sometimes want to build in `DEBUG` other times in `RELEASE`: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline, giving it a default value of `debug`:
+When should you use pipeline variables? These are useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you sometimes want to build in `DEBUG` and other times in `RELEASE`: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline, giving it a default value of `debug`:
 
 ![Pipeline Variable](images/pipeline-var.png "Adding a pipeline variable")
 
-If you specify `Let users override this value when running this pipeline` then users can change the value of the pipeline when they manully queue it. Specifying `Keep this value secret` will make this value a secret (Azure DevOps will mask the value).
+If you specify `Let users override this value when running this pipeline` then users can change the value of the pipeline when they manually queue it. Specifying `Keep this value secret` will make this value a secret (Azure DevOps will mask the value).
 
 Let's look at a simple pipeline that consumes the pipeline variable:
 
@@ -464,7 +464,7 @@ One special case of a dynamic variable is a calculated build number. For that, c
 Other logging commands are documented here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands)
 
 ### Variable Groups
-Creating inline variables is fine for values that are not sensitive and that are not likely to change very often. Pipeline variables are useful for pipelines that you want to trigger manuall. But there is another option that is particularly useful for multi-stage pipelines (we'll cover these in more detail later).
+Creating inline variables is fine for values that are not sensitive and that are not likely to change very often. Pipeline variables are useful for pipelines that you want to trigger manually. But there is another option that is particularly useful for multi-stage pipelines (we'll cover these in more detail later).
 
 Imagine you have a web application (that connects to a database) that you want to build and then push to DEV, QA and Prod environments. Let's consider just one config setting - the database connection string. Where should you store the value for the connection string? Perhaps you could store the DEV connection string in source control, but what about QA and Prod? You probably don't want those passwords stored in source control.
 
@@ -478,7 +478,7 @@ The image above shows two variable groups: one for DEV and one for QA. Let's cre
 
 ![Adding a Variable Group](images/prod-var-group.png "Creating the Prod variable group")
 
-> **Note**: Security is beyond the scope of this chapter - but you can specify who has permission to view/edit variable groups, as well as which pipelines are allowd to consume them. You can of course mark any value in the variable group as secret by clicking the padlock icon next to the value.
+> **Note**: Security is beyond the scope of this chapter - but you can specify who has permission to view/edit variable groups, as well as which pipelines are allowed to consume them. You can of course mark any value in the variable group as secret by clicking the padlock icon next to the value.
 
 > **Tip**: The trick to making variable groups work for environment values is to keep the names the same in each variable group. That way the only setting you need to update between environments is the variable group name. I suggest getting the pipeline to work completely for one environment, and then `Clone` the variable group - that way you're assured you're using the same variable names.
 
@@ -529,7 +529,7 @@ When this pipeline runs, we see the DEV, QA and Prod values from the variable gr
 
 ![Value in Prod](images/var-group-prod.png "Value in Prod")
 
-> **Note**: The format for inline varialbes alters slightly when you have variable groups - you have to use the `- name/value` format.
+> **Note**: The format for inline variables alters slightly when you have variable groups - you have to use the `- name/value` format.
 
 This example demonstrates a couple of things:
 1. Integration with variable groups
@@ -894,28 +894,175 @@ jobs:
 
 > **Note**: The complete list of functions like `eq`, `join`, `contains` and so on can be found [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops#functions).
 
-### Service Connections
-TODO: from here
-intro; abstract credentials; authorizing
-
 ## Multi-Stage Pipelines
-Intro; why this is necessary; discussion of CI/CD and differences
-### Deployment jobs
-show example
+Of course pipelines can be used to build, unit test, scan and package applications. When you trigger these actions off a commit, you get Continuous Integration (CI). But what about spinning up infrastructure and deploying applications? This is the realm of Continuous Deployment (CD).
+
+Pipelines as Code allow us to define, in code that's in source control, the entire end-to-end process of building and deploying applications:
+- Compiling source code
+- Unit testing
+- Static code analysis
+- Packaging
+- Creating/updating infrastructure through infrastructure as code
+- Deploying applications
+- Functional and performance testing
+
+I like to coach teams to think of two major processes: _build_ and _deploy_. When you build, you want to take source code as an input and compile, scan, test and package an application. This process should be entirely _environment agnostic_: that is, there should be no dependency on any environment at all. This is why unit tests should never have dependencies on external systems like databases or external services - these should be mocked, stubbed or faked. The output of the build process should be a _binary that is potentially deployable to any environment_.
+
+The second process - deployment - should take as inputs a package from a build and any scripts that are necessary to deploy the package. This process is _environment aware_: this is the place where connection strings and URLs should be configured for the target environment. After deployment, functional and performance testing should be automated. These are run here and not in the build since these tests require environments.
+
+When Team Build (Build vNext) was first released it was really a build engine. You could deploy from the build, but if you wanted to deploy to multiple environments you really had to make use of Release Management. These two tools reflected the two processes above: build and deploy. Pipelines allows you to model the entire pipeline (both processes) in a single file. You could create multiple pipelines if you wanted to keep these strictly separate, but even if you only have a single file, stick to keeping the processes separate.
+
+A multi-stage pipeline allows you to create a pipeline with multiple stages. Stages can have dependencies just like job dependencies so you can model how stages execute in relation to one another. Each stage is made up of one or more jobs.
+
+Astute readerw may ask: Why not simply model the pipeline as a series of jobs? You certainly could - but stages do give other features that jobs don't have: approvals (or checks) and environments. Each stage can (optionally) be configured to execute against an _environment_. Additionally, each stage can (optionally) define approvals before the jobs in the stage execute.
 
 ### Environments; 
-authorization, checks, k8s environments
+Environments, at their most basic, are loosely defined logical constructs. An environment could be a group of machines or a Kubernetes namespace or a resource group in Azure. Some environments are more "aware" than others. As of February 2020, when you create an environment, you can create one of three types of environment:
+1. **Kubernetes**: this is an environment that is tied to a namespace in a Kubernetes cluster
+1. **Virtual Machines**: this is an environment made up of VMs (TODO in Azure?)
+1. **None**: this is a catch-all generic environment that represents a logical environment
 
-### Endpoints; 
-Azure endpoint, generic endpoint
+By "aware", I mean that Azure DevOps will track the status of the resources within the environment. This awareness allows Pipelines to wait on resources to come up before moving on - a feature you don't get in the "None" environments. Kubernetes environments are "aware" of some of the resources (like Services, Deployments and Pods) within them. VM environments are "aware" of the VMs within the environment. For Kubernetes environments, you can see workloads within the environment and even connect to logs and consoles in real time. 
+
+Whichever environment type you end up using, this is the place where you can define approvals. Imagine you're modelling a typical pipeline with four stages: Build -> Dev -> Staging -> Prod. You may want the Dev stage to start immediately after the Build stage so that you always have the latest code deployed to Dev. However, you probably don't want Staging or Prod to simply start when the previous stage is completed: you probably want some sort of manual approval first.
+
+#### Checks
+Approvals are interesting in the world of Pipelines as Code. Think about where they should be defined. In the pipeline itself? That would mean I could update the approval in the code and make myself an approver, or remove approvals altogether. However, the Pipelines engineers decided to abstract the approvals out of the code and into another construct: environments. When we configure an environment, we can configure approvals by defining Checks.
+
+TODO: check image
+
+> **Note**: Release Management has a feature called Gates, which are automated checks. As of February 2020, it is not possible to create automated checks for environments.
+
+### Service Connections
+Environments abstract the checks and resources for a pipeline away from the pipeline itself. There is one other construct that we need to abstract away from the pipeline: _authentication_. Again, let's reason this one out: let's say you want to deploy to an Azure Web Application. You probably need some sort of authentication and authorization to do so! Let's say that you create a Service Principle and give it permission to deploy. How do you authenticate using those credentials in the pipeline? You may store the Service Principle ID in the code, but you certainly don't want to store the key in source control!
+
+Azure DevOps solves this dilemma for us by offering Service Connections (also known as Endpoints). These endpoints abstract authentication away from the pipelines themselves. An administrator can create an endpoint (in our example it would be an Azure Resource Group endpoint) with the credentials of the service principle:
+
+TODO: screenshot of create endpoint
+
+Once created, the administrator can also define security on the endpoint - who can edit and who can consume the endpoint. Pipeline authors just need to have permission to consume the endpoint - this process is known as _authorization_. When a pipeline is triggered, it must be authorized to use the endpoints that it references (unless the administrator checks `Authorize endpoint for all pipelines` when creating the endpoint). The user who presses the Authorize button must have permissions to consume that endpoint for authorization to be successful.
+
+TODO: screenshot of authorize
+
+> **TIP**: If you create a Kubernetes environment tied to a namespace, Azure DevOps creates an endpoint to that environment for you automatically.
+
+### Deployment jobs
+We have almost all the pieces we need to create a multi-stage pipeline. The final piece is a specialization of a job: a _deployment job_ (also just called a _deployment_). A deployment is a exactly the same as a job, but it targets a specific `environment` and runs its steps using a particular `strategy`. These jobs are designed for environment-aware operations, unlike jobs which are generally environment agnostic.
+
+TODO; strategies
+- deployOnce
+- canary
+- rolling?
 
 ## Advanced Topics
-### Container jobs; discuss, show example
+At this point we've covered the basics of pipelines, and even delved into some deeper concepts. In this section I want to discuss some advanced topics.
+
+### Container Jobs and Steps
+All the examples we've seen have defined `steps` for the agent to execute. We discussed early on the types of agents there are: private and hosted agents. The agent is really just an _orchestrator_ - so where are the steps actually executed? They're executed on the machine (or container) that the agent is running in.
+
+Imagine you have a Node.js application that you want to compile (or transpile), test and package. In order for that to work, you'd need to have Node.js and probably npm installed and configured _on the agent_: that is on the machine that the agent is running on. The hosted agents have a set of pre-installed SDKs and utilities, and if you use only those, you can certainly use the hosted agents for the build. But if you're using some SDK or utility that is _not_ in the hosted agent, you have to create a private agent. Typically, teams create a "build machine" and install the private agent on that machine - and then install any required SDKs and utilities too.
+
+Keeping your agent (machine) up to date can be tedious. And what if you have other projects that require other SDKs and utilities? You could install these on the same machine, but you could end up having conflicting dependencies. In this case you'd need another machine entirely.
+
+Dependency hell - ahem, management - where have you heard that before? Ever heard of Docker? Managing dependencies is one of the reasons that containers came to be in the first place, so perhaps there is a way to leverage containers to solve this problem? And of course, there is!
+
+The first way you can solve this problem is simply to run the agent as a Docker container. You simply create a Dockerfile with all of your prerequisites and then run the image somewhere. You can either install the agent yourself, or you can use `from: microsoft\vsts-agent` as the base image, which already has the Azure DevOps agent configured. The challenge with this solution is that you need to create a new image and redeploy the agent each time you need to change the dependencies.
+
+There is a more elegant solution: _container jobs_. Container jobs allow you to specify an image for the job to run in. That is, you use a "vanilla" hosted or private agent to run the pipeline. You then specify container images as `resources` in the pipeline. Then you reference the image for a job (or a step) and Azure DevOps will launch an instance of the container image _and then run the job (or step) inside that container_. This means when you have to update dependencies, you update the image but don't have to restart or redeploy the agent.
+
+TODO: example
+
+### Container Services
+We've considered using containers to manage _build_ dependencies. What about managing other dependencies? A good example is running integration tests. Imagine you have some tests that call your code, and your code has a dependency on a MySQL database. You could deploy the database and configure the connection string for the tests. However, there is a more elegant method to model service dependencies - container services.
+
+Just as we referenced container images as resources for container jobs, we can create container services. Reference the service container image and then specify that you want an instance of the service as well as the port to run on (TODO). When the pipeline completes, Azure DevOps simply shuts down the service container.
+
+TODO: example
+
+### Custom Tasks
+There are dozens of out-of-the-box tasks in Azure Pipelines. There is also a rich ecosystem of extensions in the Azure DevOps Marketplace (TODO: ref) that add custom tasks. I won't cover creating custom tasks in this chapter, but there are walkthroughs (TODO: reference).
+
+When should you create a custom task? Here are some guidelines I've found with regard to custom tasks:
+1. Check that there are no out-of-the-box or marketplace extensions that do what you need to do. Only consider custom tasks if you can't find an existing Task or you cannot install extensions (some organizations don't allow extensions for compliance reasons).
+1. Start off using a `script` task to do what you want to do.
+1. If the `script` task is going to be utilized by more than one team, that's probably a good indication that it could be turned into a custom task.
+1. Consider if a step (or job) template meets your needs. These templates allow you to share steps across multiple pipelines and/or teams fairly easily.
+1. If you want to give authors an improved authoring experience, then create a custom task. Custom tasks allow you to specify a UI that authors can use to configure the parameters to the task (through the Task Helper).
+1. Create your task using TypeScript. This ensures that your task is cross-platform.
+
 ### Decorators
-### Pipelines API
+Decorators allow you to inspect and manipulate the pipeline before it executes. You may want to enforce a policy that no inline script tasks ever be executed in a pipeline. You can do this by defining a decorator that loops through the steps in a pipeline and removes all inline script tasks:
+
+TODO: example
+
+Of course you can use decorators for logging too - not just for manipulating the pipeline code.
+
+Decorators are installed as extensions to your Azure DevOps account. Creating decorators is beyond the scope of this chapter, but you can see how to create decorators here (TODO: reference).
+
 ### Schemas; ?? show schema, discuss why you would need it (control of inheritance etc.)
+Templates allow pipelines and teams to share pipeline logic. However, template authors may want to define which exact parts of a template should be extended. You can do this using _schemas_.
+
+TODO: example
+
+### Securing Pipelines
+Securing pipelines is a chapter all on its own. This excellent article (TODO: ref) explores this topic deeply. The incrental approach that this article takes is excellent and highly recommended if you're looking at securing your pipelines.
+
+### Reporting
+Analyzing a couple of pipelines is manageable - but what if you want to analyze dozens of pipelines? What if you want to determine which tasks are consuming the most agent time? You're going to need a way to report on pipelines. Fortunately, Azure DevOps includes a rich OData feed that you can use to create reports over and analyze pipelines. For examples, refer to this guide (TODO: reference).
+
+### Pipelines API
+If you're part of a team that is authoring and managing pipelines for other teams, you may want to do more than just create templates and YML files. Azure Pipelines has a rich API for creating, managing and triggering pipelines. This allows you to automate processes around pipelines. For example, I worked with a customer that uses ServiceNow for self-service. We modelled environments using Terraform, and created Azure Pipelines for executing the Terraform templates to create the environments. We then coded a workflow in ServiceNow that went through an approval process: once the ticket was approved, ServiceNow invoked the Azure DevOps REST API to trigger the Pipeline, passing in parameters that the ServiceNow ticket collected from the user.
+
+You can find more information on the Pipelines API here (TODO: ref).
+
+### GitHub Actions
+There is another chapter in this book dedicated to GitHub Actions (TODO: ref). However, it's important to compare and contrast GitHub Actions (often just called Actions) with Azure Pipelines.
+
+GitHub Actions are also YML based. In fact, the agents that run Actions are a fork of the Azure Pipelines agent. You will notice remarkable similarity between the syntax of Pipelines and Actions. Actions can be used to model other workflows (not just CI/CD) such as tagging issues or cleaning stale issues. However, Actions only work against GitHub repos - while Pipelines can work against a wide variety of repos, including GitHub repos.
+
+As of February 2020, there are a number of limitations to Actions. For example, there are no approvals and you cannot model stages using Actions. Actions is growing rapidly, both from within GitHub and through the community. We're likely to see a rapid increase in features for Actions.
+
+Here is a comparison of Actions and Pipelines:
+
+|Feature|Actions|Pipelines|
+|---|---|---|---|
+UI Editor|No|Yes (Classic Pipelines)
+YML Definitions|Yes|Yes
+Templates|No|Yes
+Triggers for Source Control Events|Yes|Yes
+Triggers for other events|Yes|Yes (with WebHooks)
+Build Number|No|Yes
+Inline Secrets|Yes|Yes
+Variable Groups|No|Yes
+Environments|No|Yes
+Approvals|No|Yes
+Metrics|No|Yes
+Source Repo|Only GitHub|Multiple (including GitHub)
+Marketplace|Yes|Yes
+
+So which should you use? For CI, you could use either Actions or Pipelines (assuming your source code is in GitHub of course). For CD, I don't (yet) recommend Actions, since there is no way to model multiple stages or environments or approvals. Actions really shines for automating non-source code events though: while you can do these using Pipelines, it's harder. Again, the only caveat is that your source code (and your events) are in GitHub.
 
 ## Lessons Learned
-Auditability vs segregation of duty; 
-discuss coding everything vs coding just steps and having vars separate
+Throughout this chapter I've sprinked Tips that can help you to make the most of Pipelines. I want to end off by considering some of the top lessons learned and recommendations that I have about Pipelines as Code.
 
+### Templates, Templates, Templates
+Templates give you the ability to have _enterprise alignment_ but also _team autonomy_. They align teams because templates are a standard way to build or test or deploy. In an ideal world, teams would have very few steps in their pipelines: their pipelines would just be references to common templates with application and environment-specific values. Templates promote the DRY (Don't Repeat Yourself) principle and reduce the amount of maintenance overhead. Teams that are trying to change culture and improve collaboration should use templates as a forcing function.
+
+### Configuration and Secrets
+I've covered variables deeply in the Variables section, but I wanted to discuss them again here in lessons learned. Since there are multiple places where configuration and secrets can be stored, teams should consider where they want to do so. Secrets should **never** be stored in source control - use Variable Groups, Pipeline Variables or Azure KeyVault to store them. But what about other configuration? Is it better to store these in the pipeline in code or outside of the pipeline? There are many factors affecting this decision, such as history. If you want to see who changed a value when, you probably want to define the values inline since you'll be able to see the changes to the value in source control history. However, if you want the values to be changed without having to create a PR, then you probably want to store them outside the pipeline.
+
+### Segregation of Duty
+One of the problems that DevOps aims to solve is reducing siloes. We know that Dev and Ops typically operated in siloes, and that these siloes stifled collaboration and created waste by adding in queues. These siloes are often reinforced by "segregation of duty". Some industries enforce this through regulation, but often teams are just used to this way of working.
+
+As teams adopt good DevOps, including multi-disciplinary teams, siloes start disappearing and handoffs are eliminated. Pipelines as Code is critical in this transformation since it is a place where Ops-focused people can define process and infrastructure, while Dev-focused people can define applicaiton build/deploy/configure processes. When both build and deploy processes are modeled in the same pipeline, teams are forced to collaborate in a shared space: the tool enables the culture teams should be aiming for.
+
+> **Note**: If you're at all interested in a little psychology, this is called a Reverse Conway Maneuvre. You can read about this in a blog post that I wrote. (TODO: reference and check spelling).
+
+Segregation of Duty can still be enforced in a fairly unobtrusive manner with Pipelines:
+1. Ensure that every merge to master requires a Pull Request (PR) - this enforces code review
+1. While you can build off any branch, you should only deploy packages that come from the master branch
+1. Separate the folks who create environments and Checks from Pipeline authors
+1. Separate the folks who administer endpoints from Pipeline authors
+
+## Conclusion
+Pipelines as Code are an essential tool and process to master for successful DevOps. Azure Pipelines provides a rich syntax and orchestration engine that allows you to model complex build, test, package, analyze, provision and configuration processes.
