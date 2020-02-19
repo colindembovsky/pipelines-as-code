@@ -948,20 +948,36 @@ There are many types of service connection, and you can create custom service co
 
 Once created, the administrator can also define security on the connection - who can edit and who can consume the connection. Pipeline authors just need to have permission to consume the connection - this process is known as _authorization_. When a pipeline is triggered, it must be authorized to use the connections that it references (unless the administrator checks `Authorize endpoint for all pipelines` when creating the connection). The user who presses the Authorize button must have permissions to consume that connection for authorization to be successful.
 
-TODO: screenshot of authorize
+![Authorizing a referenced service connection](images/authorize-endpoint.png "Authorizing a referenced service connection")
 
 > **TIP**: If you create a Kubernetes environment tied to a namespace, Azure DevOps creates an endpoint to that environment for you automatically.
 
 ### Deployment jobs
 We have almost all the pieces we need to create a multi-stage pipeline. The final piece is a specialization of a job: a _deployment job_ (also just called a _deployment_). A deployment is a exactly the same as a job, but it targets a specific `environment` and runs its steps using a particular `strategy`. These jobs are designed for environment-aware operations, unlike jobs which are generally environment agnostic.
 
-TODO; strategies
-- deployOnce
-- canary
-- rolling?
+Strategies map to several common life cyle hooks:
+- `preDeploy`: Get ready to deploy
+- `deploy`: Deploy
+- `routeTraffic`: Route traffic to the updated version
+- `postRouteTraffic`: Test the updated version after routing traffic
+- `on: error` and `on: failure`: Perform success or failure steps
+
+Each hook can specify a set of steps that execute at that point of the life cycle.
+
+Strategies trigger and loop life cycle hooks differently. Currently there are three supported strategies:
+- [runOnce](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/deployment-jobs?view=azure-devops#runonce-deployment-strategy)
+- [rolling](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/deployment-jobs?view=azure-devops#rolling-deployment-strategy)
+- [canary](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/deployment-jobs?view=azure-devops#canary-deployment-strategy)
 
 ## Advanced Topics
 At this point we've covered the basics of pipelines, and even delved into some deeper concepts. In this section I want to discuss some advanced topics.
+
+### Caching
+Some steps in a pipeline may end up producing almost the same result, no matter how many times you execute them. For example, if you're using Yarn for package management, the `install` operation downloads all the referenced packages into a `.yarn` folder and then installs them into the `node_modules` folder. If you're referencing a large number of packages, this operation can take some time. What if we could cache the `.yarn` folder so that we don't have to download the packages on every build? We can by using _caching_.
+
+Caching allows you to cache an arbitrary `path` using an arbitrary `key`. In the Yarn example, we can specify a key of "OS + yarn.lock" for example and specify `.yarn` as the path to cache. When we execute the `cache` step, Pipelines checks the cache using the key: if there is a hit, it downloads the cache to the folder. At the end of the run, the path is uploaded to Pipelines for future cache operations.
+
+You can read more about caching [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/caching/?view=azure-devops).
 
 ### Container Jobs and Steps
 All the examples we've seen have defined `steps` for the agent to execute. We discussed early on the types of agents there are: private and hosted agents. The agent is really just an _orchestrator_ - so where are the steps actually executed? They're executed on the machine (or container) that the agent is running in.
@@ -1062,7 +1078,7 @@ One of the problems that DevOps aims to solve is reducing siloes. We know that D
 
 As teams adopt good DevOps, including multi-disciplinary teams, siloes start disappearing and handoffs are eliminated. Pipelines as Code is critical in this transformation since it is a place where Ops-focused people can define process and infrastructure, while Dev-focused people can define applicaiton build/deploy/configure processes. When both build and deploy processes are modeled in the same pipeline, teams are forced to collaborate in a shared space: the tool enables the culture teams should be aiming for.
 
-> **Note**: If you're at all interested in a little psychology, this is called a Reverse Conway Maneuvre. You can read about this in a blog post that I wrote. (TODO: reference and check spelling).
+> **Note**: If you're at all interested in a little psychology, this is called a Reverse Conway Maneuver. You can read about this in this [blog post](https://colinsalmcorner.com/post/vsts-one-team-project-and-inverse-conway-maneuver).
 
 Segregation of Duty can still be enforced in a fairly unobtrusive manner with Pipelines:
 1. Ensure that every merge to master requires a Pull Request (PR) - this enforces code review
