@@ -1002,7 +1002,7 @@ Just as we referenced container images as resources for container jobs, we can c
 TODO: example
 
 ### Custom Tasks
-There are dozens of out-of-the-box tasks in Azure Pipelines. There is also a rich ecosystem of extensions in the Azure DevOps Marketplace (TODO: ref) that add custom tasks. I won't cover creating custom tasks in this chapter, but there are walkthroughs (TODO: reference).
+There are dozens of out-of-the-box tasks in Azure Pipelines. There is also a rich ecosystem of extensions in the [Azure DevOps Marketplace](https://marketplace.visualstudio.com/azuredevops) that add custom tasks. I won't cover creating custom tasks in this chapter, but there is a walkthrough [here](https://docs.microsoft.com/en-us/azure/devops/extend/overview?view=azure-devops).
 
 When should you create a custom task? Here are some guidelines I've found with regard to custom tasks:
 1. Check that there are no out-of-the-box or marketplace extensions that do what you need to do. Only consider custom tasks if you can't find an existing Task or you cannot install extensions (some organizations don't allow extensions for compliance reasons).
@@ -1019,7 +1019,7 @@ TODO: example
 
 Of course you can use decorators for logging too - not just for manipulating the pipeline code.
 
-Decorators are installed as extensions to your Azure DevOps account. Creating decorators is beyond the scope of this chapter, but you can see how to create decorators here (TODO: reference).
+Decorators are installed as extensions to your Azure DevOps account. Creating decorators is beyond the scope of this chapter, but you can see how to create decorators [here](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-pipeline-decorator?view=azure-devops).
 
 ### Schemas; ?? show schema, discuss why you would need it (control of inheritance etc.)
 Templates allow pipelines and teams to share pipeline logic. However, template authors may want to define which exact parts of a template should be extended. You can do this using _schemas_.
@@ -1027,15 +1027,15 @@ Templates allow pipelines and teams to share pipeline logic. However, template a
 TODO: example
 
 ### Securing Pipelines
-Securing pipelines is a chapter all on its own. This excellent article (TODO: ref) explores this topic deeply. The incrental approach that this article takes is excellent and highly recommended if you're looking at securing your pipelines.
+Securing pipelines is a chapter all on its own. This excellent [article](https://docs.microsoft.com/en-us/azure/devops/pipelines/security/overview?view=azure-devops) explores this topic deeply. The incrental approach that this article takes is excellent and highly recommended if you're looking at securing your pipelines.
 
 ### Reporting
-Analyzing a couple of pipelines is manageable - but what if you want to analyze dozens of pipelines? What if you want to determine which tasks are consuming the most agent time? You're going to need a way to report on pipelines. Fortunately, Azure DevOps includes a rich OData feed that you can use to create reports over and analyze pipelines. For examples, refer to this guide (TODO: reference).
+Analyzing a couple of pipelines is manageable - but what if you want to analyze dozens of pipelines? What if you want to determine which tasks are consuming the most agent time? You're going to need a way to report on pipelines. Fortunately, Azure DevOps includes a rich OData feed that you can use to create reports over and analyze pipelines. For examples, refer to examples like [this one](https://docs.microsoft.com/en-us/azure/devops/report/powerbi/sample-pipelines-outcome-summary?view=azure-devops&tabs=powerbi).
 
 ### Pipelines API
 If you're part of a team that is authoring and managing pipelines for other teams, you may want to do more than just create templates and YML files. Azure Pipelines has a rich API for creating, managing and triggering pipelines. This allows you to automate processes around pipelines. For example, I worked with a customer that uses ServiceNow for self-service. We modelled environments using Terraform, and created Azure Pipelines for executing the Terraform templates to create the environments. We then coded a workflow in ServiceNow that went through an approval process: once the ticket was approved, ServiceNow invoked the Azure DevOps REST API to trigger the Pipeline, passing in parameters that the ServiceNow ticket collected from the user.
 
-You can find more information on the Pipelines API here (TODO: ref).
+You can find more information on the Pipelines API [here](https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/?view=azure-devops-rest-5.1).
 
 ### GitHub Actions
 There is another chapter in this book dedicated to GitHub Actions (TODO: ref). However, it's important to compare and contrast GitHub Actions (often just called Actions) with Azure Pipelines.
