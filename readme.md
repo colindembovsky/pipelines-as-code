@@ -919,28 +919,34 @@ Astute readerw may ask: Why not simply model the pipeline as a series of jobs? Y
 ### Environments; 
 Environments, at their most basic, are loosely defined logical constructs. An environment could be a group of machines or a Kubernetes namespace or a resource group in Azure. Some environments are more "aware" than others. As of February 2020, when you create an environment, you can create one of three types of environment:
 1. **Kubernetes**: this is an environment that is tied to a namespace in a Kubernetes cluster
-1. **Virtual Machines**: this is an environment made up of VMs (TODO in Azure?)
+1. **Virtual Machines**: this is an environment made up of VMs
 1. **None**: this is a catch-all generic environment that represents a logical environment
 
-By "aware", I mean that Azure DevOps will track the status of the resources within the environment. This awareness allows Pipelines to wait on resources to come up before moving on - a feature you don't get in the "None" environments. Kubernetes environments are "aware" of some of the resources (like Services, Deployments and Pods) within them. VM environments are "aware" of the VMs within the environment. For Kubernetes environments, you can see workloads within the environment and even connect to logs and consoles in real time. 
+By "aware", I mean that Azure DevOps will track the status of the resources within the environment. This awareness allows Pipelines to wait on resources to come up before moving on - a feature you don't get in the "None" environments. Kubernetes environments are "aware" of some of the resources (like Services, Deployments and Pods) within them. VM environments are "aware" of the VMs within the environment. For Kubernetes environments, you can see workloads within the environment and even connect to logs and consoles in real time.
+
+Environments also allow you to view deployments to the environment, as well as incoming commits and/or work items. You can read more about defining environments [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/environments?view=azure-devops).
 
 Whichever environment type you end up using, this is the place where you can define approvals. Imagine you're modelling a typical pipeline with four stages: Build -> Dev -> Staging -> Prod. You may want the Dev stage to start immediately after the Build stage so that you always have the latest code deployed to Dev. However, you probably don't want Staging or Prod to simply start when the previous stage is completed: you probably want some sort of manual approval first.
 
 #### Checks
 Approvals are interesting in the world of Pipelines as Code. Think about where they should be defined. In the pipeline itself? That would mean I could update the approval in the code and make myself an approver, or remove approvals altogether. However, the Pipelines engineers decided to abstract the approvals out of the code and into another construct: environments. When we configure an environment, we can configure approvals by defining Checks.
 
-TODO: check image
+![Configuring Checks on an Environment](images/checks.png "Configuring Checks on an Environment")
 
-> **Note**: Release Management has a feature called Gates, which are automated checks. As of February 2020, it is not possible to create automated checks for environments.
+> **Note**: Release Management (classic pipelines) has a feature called [Gates](https://docs.microsoft.com/en-us/azure/devops/pipelines/release/approvals/gates?view=azure-devops), which are automated checks. As of February 2020, it is not possible to create automated checks for environments. You can, however, create [artifact policy checks](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/artifact-policy?view=azure-devops) for container images deploying to Kubernetes environments.
 
 ### Service Connections
 Environments abstract the checks and resources for a pipeline away from the pipeline itself. There is one other construct that we need to abstract away from the pipeline: _authentication_. Again, let's reason this one out: let's say you want to deploy to an Azure Web Application. You probably need some sort of authentication and authorization to do so! Let's say that you create a Service Principle and give it permission to deploy. How do you authenticate using those credentials in the pipeline? You may store the Service Principle ID in the code, but you certainly don't want to store the key in source control!
 
-Azure DevOps solves this dilemma for us by offering Service Connections (also known as Endpoints). These endpoints abstract authentication away from the pipelines themselves. An administrator can create an endpoint (in our example it would be an Azure Resource Group endpoint) with the credentials of the service principle:
+Azure DevOps solves this dilemma for us by offering Service Connections (also known as Endpoints). These connections abstract authentication away from the pipelines themselves. An administrator can create an endpoint (in our example it would be an Azure Resource Group endpoint) with the credentials of the service principle:
 
-TODO: screenshot of create endpoint
+![Creating an Azure Resource Manager service connection](images/azure-arm-endpoint.png "Creating an Azure Resource Manager service connection")
 
-Once created, the administrator can also define security on the endpoint - who can edit and who can consume the endpoint. Pipeline authors just need to have permission to consume the endpoint - this process is known as _authorization_. When a pipeline is triggered, it must be authorized to use the endpoints that it references (unless the administrator checks `Authorize endpoint for all pipelines` when creating the endpoint). The user who presses the Authorize button must have permissions to consume that endpoint for authorization to be successful.
+There are many types of service connection, and you can create custom service connection types too:
+
+![Some Service Connection types](images/endpoint-types.png "Some Service Connection types")
+
+Once created, the administrator can also define security on the connection - who can edit and who can consume the connection. Pipeline authors just need to have permission to consume the connection - this process is known as _authorization_. When a pipeline is triggered, it must be authorized to use the connections that it references (unless the administrator checks `Authorize endpoint for all pipelines` when creating the connection). The user who presses the Authorize button must have permissions to consume that connection for authorization to be successful.
 
 TODO: screenshot of authorize
 
