@@ -44,7 +44,7 @@ The agent is written in .NET Core, so it runs happily wherever .NET Core runs �
 
 Every Azure DevOps account has a Hosted queue with a single agent that can run one job at a time and an amount of free build minutes. Pricing is beyond the scope of this chapter, but you can purchase additional "hosted pipelines" in Azure DevOps. When you purchase an additional hosted pipeline, you’re really removing the build minutes limit and adding concurrency: one pipeline can run one job at a time, two pipelines can run two jobs simultaneously. When a pipeline is triggered or manually queued, Azure DevOps spins up an agent in Azure (either Windows, Linux or Mac, depending on which image you’ve configured to handle the pipeline) and runs the steps in the pipeline. The image is predefined by Microsoft and comes with a set of tools and SDKs preinstalled. Once the build completes, the instance is deleted.
 
-> **TIP**: To see the list of installed software on the images, navigate to [https://github.com/actions/virtual-environments/tree/master/images](https://github.com/actions/virtual-environments/tree/master/images). Click into the platform folder and examine the README.md files.
+> **TIP**: The list of software installed on the images is listed on [this repo](https://github.com/actions/virtual-environments/tree/master/images). Click into the platform folder and examine the README.md files.
 
 There are also private pipelines and agents. If your build requires dependencies that are not installed on the hosted agent you have two choices: add a step that installs the dependency on a hosted agent. If this only take a few seconds, you’re good to go. Remember, each build starts off with a clean instance, so this step will be executed on every build – so long running install processes won’t work here. Your other option is to create a build machine, install your dependencies and then install the Azure DevOps agent on this machine – this is a private agent.
 
@@ -52,7 +52,7 @@ If you need to access resources that are not publicly accessible, such as Artifa
 
 When you install an agent, you register the agent with a private queue. You can install as many agents onto a queue as you want – but you should only install one agent per core on a build machine. When a pipeline is queued onto a private queue, Azure DevOps will find an idle agent on that queue and offload the job to that agent. However, irrespective of how many agents you have on a queue, you still must pay for concurrency. If you want to run ten jobs at the same time, you’ll need 10 pipelines and at least 10 agents. If you only have one queue and 10 agents, you still only get one job running at a time!
 
-> **TIP**: If you have multiple build machines and want to target specific machines for specific jobs, you can specify demands on the agent and in the pipeline. When the pipeline is queued, Azure DevOps will look for idle agents on the target queue that match the specified demands. More information on demands can be found here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/process/demands?view=azure-devops&tabs=yaml](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/demands?view=azure-devops&tabs=yaml)
+> **TIP**: If you have multiple build machines and want to target specific machines for specific jobs, you can specify demands on the agent and in the pipeline. When the pipeline is queued, Azure DevOps will look for idle agents on the target queue that match the specified demands. More information on demands can be found [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/demands?view=azure-devops&tabs=yaml).
 
 ## Anatomy of a Pipeline
 
@@ -173,7 +173,7 @@ There are other triggers for other events such as:
 1. Schedules, which allow you to specify cron expressions for scheduling pipeline runs
 1. Pipelines, which allow you to trigger pipelines when other pipelines complete, allowing pipeline chaining
 
-You can find all the documentation on triggers here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/build/triggers?view=azure-devops&tabs=yaml](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/triggers?view=azure-devops&tabs=yaml)
+You can find all the documentation on triggers [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/triggers?view=azure-devops&tabs=yaml).
 
 > **TIP**: If you have a small repo that contains only a single application or component, then you probably don't need branch filters. Branch filters are much more important for mono repos (that is a repo that contains multiple applications or components). If you have all your source in a single repo, then you may still want multiple pipelines that build parts of the repo. This is when you should use path filters.
 
@@ -301,7 +301,7 @@ steps:
 ### Steps are Tasks
 Steps are the actual "things" that execute, in the order that they are specified in the job. Each step is a task: there are out of the box (OOB) tasks that come with Azure DevOps, many of which have aliases, and there are tasks that get installed to your Azure DevOps account via the marketplace.
 
-Creating custom tasks is beyond the scope of this chapter, but you can see how to create your own custom tasks here [https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops).
+Creating custom tasks is beyond the scope of this chapter, but you can see how to create your own custom tasks [here](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-build-task?view=azure-devops).
 
 ## Variables
 It would be tough to achieve any sort of sophistication in your pipelines without variables. There are several types of variables, though this classification is partly mine and pipelines don’t distinguish between these types. However, I’ve found it useful to categorize pipeline variables to help teams understand some of the nuances that occur when dealing with them.
@@ -461,7 +461,7 @@ One special case of a dynamic variable is a calculated build number. For that, c
     echo "##vso[build.updatebuildnumber]$buildNum"
 ```
 
-Other logging commands are documented here: [https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands)
+Other logging commands are documented [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#build-commands).
 
 ### Variable Groups
 Creating inline variables is fine for values that are not sensitive and that are not likely to change very often. Pipeline variables are useful for pipelines that you want to trigger manually. But there is another option that is particularly useful for multi-stage pipelines (we'll cover these in more detail later).
