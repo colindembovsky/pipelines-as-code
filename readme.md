@@ -979,27 +979,127 @@ Caching allows you to cache an arbitrary `path` using an arbitrary `key`. In the
 
 You can read more about caching [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/caching/?view=azure-devops).
 
-### Container Jobs and Steps
+### Container Jobs
 All the examples we've seen have defined `steps` for the agent to execute. We discussed early on the types of agents there are: private and hosted agents. The agent is really just an _orchestrator_ - so where are the steps actually executed? They're executed on the machine (or container) that the agent is running in.
 
 Imagine you have a Node.js application that you want to compile (or transpile), test and package. In order for that to work, you'd need to have Node.js and probably npm installed and configured _on the agent_: that is on the machine that the agent is running on. The hosted agents have a set of pre-installed SDKs and utilities, and if you use only those, you can certainly use the hosted agents for the build. But if you're using some SDK or utility that is _not_ in the hosted agent, you have to create a private agent. Typically, teams create a "build machine" and install the private agent on that machine - and then install any required SDKs and utilities too.
 
 Keeping your agent (machine) up to date can be tedious. And what if you have other projects that require other SDKs and utilities? You could install these on the same machine, but you could end up having conflicting dependencies. In this case you'd need another machine entirely.
 
-Dependency hell - ahem, management - where have you heard that before? Ever heard of Docker? Managing dependencies is one of the reasons that containers came to be in the first place, so perhaps there is a way to leverage containers to solve this problem? And of course, there is!
+Dependency hell - ahem, management - where have you heard that before? Ever heard of Docker? Managing dependencies is one of the reasons that containers became popular in the first place, so perhaps there is a way to leverage containers to solve this problem? And of course, there is!
 
-The first way you can solve this problem is simply to run the agent as a Docker container. You simply create a Dockerfile with all of your prerequisites and then run the image somewhere. You can either install the agent yourself, or you can use `from: microsoft\vsts-agent` as the base image, which already has the Azure DevOps agent configured. The challenge with this solution is that you need to create a new image and redeploy the agent each time you need to change the dependencies.
+The first way you can solve this problem is simply to run the agent as a Docker container. You simply create a Dockerfile with all of your prerequisites and then run the image somewhere. There is a walkthrough [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/docker?view=azure-devops#adding-tools-and-customizing-the-container). The challenge with this solution is that you need to create a new image and redeploy the agent each time you need to change the dependencies.
 
-There is a more elegant solution: _container jobs_. Container jobs allow you to specify an image for the job to run in. That is, you use a "vanilla" hosted or private agent to run the pipeline. You then specify container images as `resources` in the pipeline. Then you reference the image for a job (or a step) and Azure DevOps will launch an instance of the container image _and then run the job (or step) inside that container_. This means when you have to update dependencies, you update the image but don't have to restart or redeploy the agent.
+There is a more elegant solution: _container jobs_. [Container jobs](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/container-phases?view=azure-devops) allow you to specify an image for the job to run in. That is, you use a "vanilla" hosted or private agent to run the pipeline. You then specify container images as `resources` in the pipeline. Then you reference the image for a job (or a step) and Azure DevOps will launch an instance of the container image _and then run the job (or step) inside that container_. This means when you have to update dependencies, you update the image but don't have to restart or redeploy the agent.
 
-TODO: example
+In this very simple example, the `printenv` command is run inside a container instance - this is _not_ the same instance that the agent is running on!
 
-### Container Services
-We've considered using containers to manage _build_ dependencies. What about managing other dependencies? A good example is running integration tests. Imagine you have some tests that call your code, and your code has a dependency on a MySQL database. You could deploy the database and configure the connection string for the tests. However, there is a more elegant method to model service dependencies - container services.
+```yml
+pool:
+  vmImage: 'ubuntu-16.04'
 
-Just as we referenced container images as resources for container jobs, we can create container services. Reference the service container image and then specify that you want an instance of the service as well as the port to run on (TODO). When the pipeline completes, Azure DevOps simply shuts down the service container.
+container: ubuntu:16.04
 
-TODO: example
+steps:
+- script: printenv
+```
+
+For a more "real-world" example, consider a pipeline that automated [Azure AutoML](https://docs.microsoft.com/en-us/azure/machine-learning/concept-automated-ml) training. In order to automate this training, you need the `az` cli (the [Azure command line interface](https://docs.microsoft.com/en-us/cli/azure/get-started-with-azure-cli?view=azure-cli-latest)) but you also need some other python libraries as well as the `azure-cli-ml` extension. Rather than install the python packages and extensions every time the build runs, I create a Docker image for executing the Azure Pipeline job. I then have a build that creates the image from the [Dockerfile](https://github.com/10thmagnitude/MLOpsDemo/blob/master/automl/docker/Dockerfile) and publishes the image to Azure Container Registry.
+
+Now that we have the image, we can add it as a reference like so:
+
+```yml
+resources:
+  containers:
+  - container: mlops
+    image: build/mlops:latest
+    endpoint: cdk8spu-reg
+```
+
+> **Note**: The `endpoint` is a service endpoint that has credentials to my Azure Container Registry. The registry doesn't have to be in Azure - it can be any Docker registry.
+
+We can now tell Pipelines to create an instance of the container image (a running container) and execute the job within this running image:
+
+```yml
+jobs:
+- deployment: trainModel
+  displayName: Train Model
+  pool:
+    vmImage: ubuntu-latest
+  # tell Azure Pipelines to run this job in the referenced container image
+  container: mlops
+  steps:
+  - checkout: self
+
+  # this step requires the prerequisites that are configured in the container image
+  - task: AzureCLI@2
+    displayName: Upload training data
+    inputs:
+      azureSubscription: $(AzureSubscription)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        echo "Uploading training data"
+        dataStoreName=$(az ml datastore show-default -w $WORKSPACE -g $RG --query name -o tsv)
+        az ml datastore upload -w $WORKSPACE -g $RG -n $dataStoreName -p $DATAFOLDER -u $CONTAINER --overwrite true
+        
+        # create a variable with the datastoreName for subsequent tasks
+        echo "##vso[task.setvariable variable=DataStoreName;]$dataStoreName"
+    env:
+      ...
+```
+
+You can see the full pipeline [here](https://github.com/10thmagnitude/MLOpsDemo/blob/master/azure-pipeline-automl.yml).
+
+### Service Containers
+We've considered using containers to manage _build_ dependencies. What about managing other dependencies? A good example is running integration tests. Imagine you have some tests that call your code, and your code has a dependency on a MySQL database. You could deploy the database and configure the connection string for the tests. However, there is a more elegant method to model service dependencies - [service containers](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/service-containers?view=azure-devops&tabs=yaml).
+
+Just as we referenced container images as resources for container jobs, we can create container services. Reference the service container image and then specify that you want an instance of the service, and optionally the port to run on. When the pipeline completes, Azure DevOps simply shuts down the service container.
+
+Imagine you need to run nginx and redis for your test steps. The service containers documentation includes this example of how to do this:
+
+```yml
+resources:
+  containers:
+  - container: nginx
+    image: nginx
+  - container: redis
+    image: redis
+
+pool:
+  vmImage: 'ubuntu-16.04'
+
+container: ubuntu:16.04
+
+services:
+  nginx: nginx
+  redis: redis
+
+steps:
+- script: |
+    apt install -y curl
+    curl nginx
+    apt install redis-tools
+    redis-cli -h redis ping
+```
+
+The job references two container images: `nginx` and `redis`. They are spun up in the `services` section, including creating networking and DNS entries in the `job` container (`ubuntu:16:04`) so that they can be accessed using `nginx` and `redis` as the hosts.
+
+#### Container Steps
+Specifying `container` for a job instructs Azure Pipelines to run the entire job inside the container. You can be more fine-grained and use a container for an individual step using the `target` keyword on a step. In the following example, a single step is run inside a container image that has JMeter installed:
+
+```yml
+resources:
+  containers:
+  - container: jmeter
+    image: justb4/jmeter:latest
+
+steps:
+- script: echo No access to jmeter
+# this step runs inside the jmeter container
+- script: jmeter -n -t test.jmx ...
+  target: jmeter
+```
 
 ### Custom Tasks
 There are dozens of out-of-the-box tasks in Azure Pipelines. There is also a rich ecosystem of extensions in the [Azure DevOps Marketplace](https://marketplace.visualstudio.com/azuredevops) that add custom tasks. I won't cover creating custom tasks in this chapter, but there is a walkthrough [here](https://docs.microsoft.com/en-us/azure/devops/extend/overview?view=azure-devops).
@@ -1013,18 +1113,50 @@ When should you create a custom task? Here are some guidelines I've found with r
 1. Create your task using TypeScript. This ensures that your task is cross-platform.
 
 ### Decorators
-Decorators allow you to inspect and manipulate the pipeline before it executes. You may want to enforce a policy that no inline script tasks ever be executed in a pipeline. You can do this by defining a decorator that loops through the steps in a pipeline and removes all inline script tasks:
+[Pipeline Decorators](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-pipeline-decorator?view=azure-devops) allow you to inspect and manipulate the pipeline before it executes. You may want to run a script at the end of every pipeline. You can do this by defining a decorator that injects a step:
 
-TODO: example
+```yml
+steps:
+  - task: CmdLine@2
+    displayName: 'Run my script (injected from decorator)'
+    inputs:
+      script: ...
+```
 
-Of course you can use decorators for logging too - not just for manipulating the pipeline code.
+> **Note**: This is exacly the way that the `cache` task synchronizes the cache path at the end of the pipeline, so you only add the `cache` task once instead of having to add a "download" and "upload" task.
 
 Decorators are installed as extensions to your Azure DevOps account. Creating decorators is beyond the scope of this chapter, but you can see how to create decorators [here](https://docs.microsoft.com/en-us/azure/devops/extend/develop/add-pipeline-decorator?view=azure-devops).
 
-### Schemas; ?? show schema, discuss why you would need it (control of inheritance etc.)
-Templates allow pipelines and teams to share pipeline logic. However, template authors may want to define which exact parts of a template should be extended. You can do this using _schemas_.
+### Extends Templates
+Templates allow pipelines and teams to share pipeline logic. However, template authors may want to manipulate jobs, injecting or removing steps. You can do this using _extends templates_.
 
-TODO: example
+Imagine you want to restrict pipelines in such a manner that authors cannot run `script` tasks. The [extends templates](https://docs.microsoft.com/en-us/azure/devops/pipelines/security/templates?view=azure-devops#use-extends-templates) documentation demonstrates this using the following example:
+
+```yml
+# template.yml
+parameters:
+- name: usersteps
+  type: stepList
+  default: []
+steps:
+- ${{ each step in parameters.usersteps }}:
+  - ${{ each pair in step }}:
+    ${{ if ne(pair.key, 'script') }}:
+      ${{ pair.key }}: ${{ pair.value }}
+```
+
+```yml
+# azure-pipelines.yml
+extends:
+  template: template.yml
+  parameters:
+    usersteps:
+    - task: MyTask@1
+    - script: echo This step will be stripped out and not run!
+    - task: MyOtherTask@2
+```
+
+> **Note**: The `type` keyword is used above - this keyword allows template authors to enforce [parameter type safety](https://docs.microsoft.com/en-us/azure/devops/pipelines/security/templates?view=azure-devops#type-safe-parameters).
 
 ### Securing Pipelines
 Securing pipelines is a chapter all on its own. This excellent [article](https://docs.microsoft.com/en-us/azure/devops/pipelines/security/overview?view=azure-devops) explores this topic deeply. The incrental approach that this article takes is excellent and highly recommended if you're looking at securing your pipelines.
