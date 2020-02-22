@@ -1179,20 +1179,20 @@ As of February 2020, there are a number of limitations to Actions. For example, 
 Here is a comparison of Actions and Pipelines:
 
 |Feature|Actions|Pipelines|
-|---|---|---|---|
-UI Editor|No|Yes (Classic Pipelines)
-YML Definitions|Yes|Yes
-Templates|No|Yes
-Triggers for Source Control Events|Yes|Yes
-Triggers for other events|Yes|Yes (with WebHooks)
-Build Number|No|Yes
-Inline Secrets|Yes|Yes
-Variable Groups|No|Yes
-Environments|No|Yes
-Approvals|No|Yes
-Metrics|No|Yes
-Source Repo|Only GitHub|Multiple (including GitHub)
-Marketplace|Yes|Yes
+|---|---|---|
+|UI Editor|No|Yes (Classic Pipelines)|
+|YML Definitions|Yes|Yes|
+|Templates|No|Yes|
+|Triggers for Source Control Events|Yes|Yes|
+|Triggers for other events|Yes|Yes (with WebHooks)|
+|Build Number|No|Yes|
+|Inline Secrets|Yes|Yes|
+|Variable Groups|No|Yes|
+|Environments|No|Yes|
+|Approvals|No|Yes|
+|Metrics|No|Yes|
+|Source Repo|Only GitHub|Multiple (including GitHub)|
+|Marketplace|Yes|Yes|
 
 So which should you use? For CI, you could use either Actions or Pipelines (assuming your source code is in GitHub of course). For CD, I don't (yet) recommend Actions, since there is no way to model multiple stages or environments or approvals. Actions really shines for automating non-source code events though: while you can do these using Pipelines, it's harder. Again, the only caveat is that your source code (and your events) are in GitHub.
 
