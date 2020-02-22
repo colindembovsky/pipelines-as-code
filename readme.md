@@ -18,12 +18,13 @@ It’s also worth noting that while my team was (slowly) getting better at autom
 When Microsoft released TFS 2015, it launched yet another build engine – officially called TeamBuild, but often referred to as Build vNext. This build system had a web-based UI over a JSON file and was an orchestration engine rather than a build engine. You could also create your own custom tasks if you needed to – but adding in a custom script was simple, so most custom logic ended up in simple scripts. Using TeamBuild, teams could quickly create complex workflows for building, testing and deploying their code.
 In 2013, Microsoft acquired a tool called InRelease from InCycle. It was rebranded to Release Management and incorporated into TFS 2013. InRelease (and the first wave of Release Management) was a desktop application that used TFS 2013 as the backend system. Now teams could use the desktop designer to model deployment workflows, including approvals – the designer was similar to the XAML designer from XAML builds. 
 
-These releases could be configured to trigger off build completion events, and for the first time teams had a fairly sophisticated toolchain that allowed building, testing and deploying applications. At around the same time, Microsoft release Visual Studio Online, a cloud-hosted version of Team Foundation Server. In 2015, the desktop Release Management product was superseded by an integrated web-based UI. Visual Studio Online was then rebranded to Visual Studio Team Services and later to Azure DevOps Services. Team Foundation Server was rebranded to Azure DevOps Server in late 2018.
+These releases could be configured to trigger off build completion events, and for the first time teams had a fairly sophisticated toolchain that allowed building, testing and deploying applications. At around the same time, Microsoft released Visual Studio Online, a cloud-hosted version of Team Foundation Server. In 2015, the desktop Release Management product was superseded by an integrated web-based UI. Visual Studio Online was then rebranded to Visual Studio Team Services and later to Azure DevOps Services. Team Foundation Server was rebranded to Azure DevOps Server in late 2018.
 
 For the remainder of this chapter, I’ll refer to Azure DevOps, but this includes Azure DevOps Server too, so whether you’re on the cloud service or hosting your own Azure DevOps Server, there’s no difference as far as pipelines as code is concerned.
-While you could export the build and release definitions as JSON files, these artifacts were stored "somewhere" in the backend database of Azure DevOps and not in source control. You could see the history of changes to the definitions – but only if you looked at them in the web designer, and it was difficult to trace changes or even create any sort of approval process for changes to definitions.
+While you could export the UI-based build and release definitions as JSON files, these artifacts were stored "somewhere" in the backend database of Azure DevOps and not in source control. You could see the history of changes to the definitions – but only if you looked at them in the web designer, and it was difficult to trace changes or even create any sort of approval process for changes to definitions.
 
-Other competing build systems, like CircleCI, allowed teams to create build processes using files stored in source control. Finally, late in 2017 Microsoft released YAML builds. These builds are YAML files stored in source control alongside your application code – which means they benefit from all the source control processes that application code benefit from, such as Pull Requests.
+Other competing build systems, like CircleCI, allowed teams to create build processes using files stored in source control. Finally, late in 2017 Microsoft released [YAML](https://yaml.org/) builds. These builds are YAML files stored in source control alongside your application code – which means they benefit from all the source control processes that application code benefit from, such as Pull Requests.
+
 In May 2019, Microsoft added stages to YAML files allow teams to codify the entire end-to-end build, test and deploy workflow in a YAML file. At last, teams using Azure DevOps were able to codify their entire pipeline.
 
 ## Why Pipelines?
@@ -270,7 +271,7 @@ This will produce the following graph:
 ### Checkout
 Classic builds implicitly checkout any repository artifacts, but pipelines require you to be more explicit using the `checkout` keyword:
 - Jobs check out the repo they are contained in automatically unless you specify `checkout: none`.
-- Deployment jobs do not automatically check out the repo, so you'll need to specify `checkout: self` for deployment jobs if you want to get access to files in the YML file's repo.
+- Deployment jobs do not automatically check out the repo, so you'll need to specify `checkout: self` for deployment jobs if you want to get access to files in the YAML file's repo.
 
 ### Download
 Downloading artifacts requires you to use the `download` keyword. Downloads also work the opposite way for jobs and dpeloyment jobs:
@@ -320,7 +321,7 @@ steps:
 This will write `Hello, colin!` to the log.
 
 ### Inline Variables
-These are variables that are hard coded into the pipeline YML file itself. Use these for specifying values that are not sensitive and that are unlikely to change. A good example is an image name: let’s imagine you have a pipeline that is building a Docker container and pushing that container to a registry. You are probably going to end up referencing the image name in several steps (such as tagging the image and then pushing the image). Instead of using a value in-line in each step, you can create a variable and use it multiple times. This keeps to the DRY (Do not Repeat Yourself) principle and ensures that you don’t inadvertently misspell the image name in one of the steps. In the following example, we create a variable called `imageName` so that we only have to maintain the value once rather than in multiple places:
+These are variables that are hard coded into the pipeline YAML file itself. Use these for specifying values that are not sensitive and that are unlikely to change. A good example is an image name: let’s imagine you have a pipeline that is building a Docker container and pushing that container to a registry. You are probably going to end up referencing the image name in several steps (such as tagging the image and then pushing the image). Instead of using a value in-line in each step, you can create a variable and use it multiple times. This keeps to the DRY (Do not Repeat Yourself) principle and ensures that you don’t inadvertently misspell the image name in one of the steps. In the following example, we create a variable called `imageName` so that we only have to maintain the value once rather than in multiple places:
 
 ```yml
 trigger:
@@ -360,9 +361,9 @@ There are several predefined variables that you can reference in your pipeline. 
 You can find a full list of predefined variables [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml).
 
 ### Pipeline Variables
-Pipeline variables are specified in Azure DevOps in the pipeline UI when you create a pipeline from the YML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as "secrets" (we’ll cover secrets a bit later). This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time.
+Pipeline variables are specified in Azure DevOps in the pipeline UI when you create a pipeline from the YAML file. These allow you to abstract the variables out of the file. You can specify defaults and/or mark the variables as "secrets" (we’ll cover secrets a bit later). This is useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time.
 
-> **Note**: if you specify a variable in the YML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must **not** specify them in the "variables" section.
+> **Note**: if you specify a variable in the YAML variables section, you cannot create a pipeline variable with the same name. If you plan on using pipeline variables, you must **not** specify them in the "variables" section.
 
 When should you use pipeline variables? These are useful if you plan on triggering the pipeline manually and want to set the value of a variable at queue time. Imagine you sometimes want to build in `DEBUG` and other times in `RELEASE`: you could specify `buildConfiguration` as a pipeline variable when you create the pipeline, giving it a default value of `debug`:
 
@@ -549,7 +550,7 @@ Let's consider the previous example pipeline. Each job had exactly the same `ste
   - script: echo "ConStr is $(ConStr) in enviroment $(environment)"
 ```
 
-What if we created a template for the common steps so that we only had to maintain it in a single place? All we have to do is place the steps into a separate steps YML file - and we can even parameterize the template:
+What if we created a template for the common steps so that we only had to maintain it in a single place? All we have to do is place the steps into a separate steps YAML file - and we can even parameterize the template:
 
 ```yml
 # templates/steps.yml
@@ -1165,14 +1166,14 @@ Securing pipelines is a chapter all on its own. This excellent [article](https:/
 Analyzing a couple of pipelines is manageable - but what if you want to analyze dozens of pipelines? What if you want to determine which tasks are consuming the most agent time? You're going to need a way to report on pipelines. Fortunately, Azure DevOps includes a rich OData feed that you can use to create reports over and analyze pipelines. For examples, refer to examples like [this one](https://docs.microsoft.com/en-us/azure/devops/report/powerbi/sample-pipelines-outcome-summary?view=azure-devops&tabs=powerbi).
 
 ### Pipelines API
-If you're part of a team that is authoring and managing pipelines for other teams, you may want to do more than just create templates and YML files. Azure Pipelines has a rich API for creating, managing and triggering pipelines. This allows you to automate processes around pipelines. For example, I worked with a customer that uses ServiceNow for self-service. We modelled environments using Terraform, and created Azure Pipelines for executing the Terraform templates to create the environments. We then coded a workflow in ServiceNow that went through an approval process: once the ticket was approved, ServiceNow invoked the Azure DevOps REST API to trigger the Pipeline, passing in parameters that the ServiceNow ticket collected from the user.
+If you're part of a team that is authoring and managing pipelines for other teams, you may want to do more than just create templates and YAML files. Azure Pipelines has a rich API for creating, managing and triggering pipelines. This allows you to automate processes around pipelines. For example, I worked with a customer that uses ServiceNow for self-service. We modelled environments using Terraform, and created Azure Pipelines for executing the Terraform templates to create the environments. We then coded a workflow in ServiceNow that went through an approval process: once the ticket was approved, ServiceNow invoked the Azure DevOps REST API to trigger the Pipeline, passing in parameters that the ServiceNow ticket collected from the user.
 
 You can find more information on the Pipelines API [here](https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/?view=azure-devops-rest-5.1).
 
 ### GitHub Actions
 There is another chapter in this book dedicated to GitHub Actions (TODO: ref). However, it's important to compare and contrast GitHub Actions (often just called Actions) with Azure Pipelines.
 
-GitHub Actions are also YML based. In fact, the agents that run Actions are a fork of the Azure Pipelines agent. You will notice remarkable similarity between the syntax of Pipelines and Actions. Actions can be used to model other workflows (not just CI/CD) such as tagging issues or cleaning stale issues. However, Actions only work against GitHub repos - while Pipelines can work against a wide variety of repos, including GitHub repos.
+GitHub Actions are also YAML based. In fact, the agents that run Actions are a fork of the Azure Pipelines agent. You will notice remarkable similarity between the syntax of Pipelines and Actions. Actions can be used to model other workflows (not just CI/CD) such as tagging issues or cleaning stale issues. However, Actions only work against GitHub repos - while Pipelines can work against a wide variety of repos, including GitHub repos.
 
 As of February 2020, there are a number of limitations to Actions. For example, there are no approvals and you cannot model stages using Actions. Actions is growing rapidly, both from within GitHub and through the community. We're likely to see a rapid increase in features for Actions.
 
@@ -1181,7 +1182,7 @@ Here is a comparison of Actions and Pipelines:
 |Feature|Actions|Pipelines|
 |---|---|---|
 |UI Editor|No|Yes (Classic Pipelines)|
-|YML Definitions|Yes|Yes|
+|YAML Definitions|Yes|Yes|
 |Templates|No|Yes|
 |Triggers for Source Control Events|Yes|Yes|
 |Triggers for other events|Yes|Yes (with WebHooks)|
