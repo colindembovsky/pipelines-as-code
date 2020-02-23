@@ -40,8 +40,7 @@ Before we launch into examining Pipelines, we should know why pipelines as code 
 
 While pipelines as code – in our case, YAML builds – are powerful, they also do have a learning curve and some gotchas. Throughout this chapter I’ll call out some of these gotchas and make some recommendations about how you should think about your YAML builds. 
 
-## Basics of Pipelines
-### Agents and Queues
+## Agents and Queues
 Before we jump into pipelines themselves, we must consider where these pipelines execute. The Azure DevOps build system is still really an orchestration engine: when a build is triggered, it finds an "agent" and tells the agent to execute the jobs (we’ll cover jobs later) defined in the pipeline file.
 
 The agent is written in .NET Core, so it runs happily wherever .NET Core runs – Windows, Mac and Linux. Agents are registered with a queue in Azure DevOps: there are two types of queue in Azure DevOps: hosted and private.
