@@ -1171,7 +1171,7 @@ If you're part of a team that is authoring and managing pipelines for other team
 You can find more information on the Pipelines API [here](https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/?view=azure-devops-rest-5.1).
 
 ### GitHub Actions
-There is another chapter in this book dedicated to GitHub Actions (TODO: ref). However, it's important to compare and contrast GitHub Actions (often just called Actions) with Azure Pipelines.
+There is another chapter in this book dedicated to GitHub Actions. However, it's important to compare and contrast GitHub Actions (often just called Actions) with Azure Pipelines.
 
 GitHub Actions are also YAML based. In fact, the agents that run Actions are a fork of the Azure Pipelines agent. You will notice remarkable similarity between the syntax of Pipelines and Actions. Actions can be used to model other workflows (not just CI/CD) such as tagging issues or cleaning stale issues. However, Actions only work against GitHub repos - while Pipelines can work against a wide variety of repos, including GitHub repos.
 
