@@ -1,4 +1,7 @@
 # Pipelines as Code
+
+[[_TOC_]]
+
 ## Intro
 I remember my first job after graduating from college – I worked for a small Internet Service Provider (ISP) that provided services such as email and anti-virus to its customers. We were using C++ and CORBA – this was before web services and REST. 
 I remember Friday afternoons spent watching the build scripts slowly build our large code base. Woe to the developer that broke the build! When the build succeeded, we would all cheer, and then we’d step outside into the African sun and we would all braai (barbeque) and celebrate another successful build.
