@@ -760,7 +760,7 @@ Here's a real-life example from a [TailWind Traders pipeline](https://github.com
 
 Thinking about this scenario, I wanted a template for deployment steps that I could parameterize. Rather than copy the entire template, I used a `for` expression to iterate over a map of complex properties (we'll cover expressions in the next section). For each service deployment, I wanted:
 - `serviceName`: The path to the service Helm chart
-- `serviceShortName`: Required because the deployment requires two steps: `bake` the manifest, and then `deploy` the baked manifest. The `deploy` task references the outout of the `bake` step, so I needed a name that wouldn't collide as I expanded it multiple times in the `for` loop. Here's a snippet of the template steps:
+- `serviceShortName`: Required because the deployment requires two steps: `bake` the manifest, and then `deploy` the baked manifest. The `deploy` task references the output of the `bake` step, so I needed a name that wouldn't collide as I expanded it multiple times in the `for` loop. Here's a snippet of the template steps:
 
 ```yml
 # templates/step-deploy-container-service.yml
@@ -821,7 +821,7 @@ Here's a snippet of the pipeline that references the template:
 In this case, `services` could not have been a variable since variables can only have `string` values. Hence I had to make it a parameter.
 
 ### Expressions
-There are a number of expressions that allow us to create more complex scenarios. The example above uses both the `for` and the `if` expressions, along with the boolean function `eq`. Expressions can be used to loop over steps or ignore steps (as an equivalent of setting the `condition` property to `false`). Let's look at an example in a bit more detail:
+There are a number of expressions that allow us to create more complex scenarios. The example above uses both the `each` and the `if` expressions, along with the boolean function `eq`. Expressions can be used to loop over steps or ignore steps (as an equivalent of setting the `condition` property to `false`). Let's look at an example in a bit more detail:
 
 ```yml
 # templates/steps.yml
